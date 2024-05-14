@@ -1,9 +1,3 @@
-"""
-Install required modules using command inside quotes
-
-`pip install pandas numpy scikit-learn hmmlearn imbalanced-learn`
-"""
-
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 
@@ -12,12 +6,15 @@ from utils import (
     get_activity_duration_data,
     get_cleaned_sensor_dataframe,
     get_motion_count_from_presence_dataframe,
-    filter_rows_based_on_given_values_list,
     unique_values_with_count,
     get_balanced_data,
-    model_training_and_testing,
     calculate_metrics,
+    print_metrices,
+    get_feature_and_label,
+    model_train_test_split,
 )
+
+from rules import get_location, get_activity_label
 
 import warnings
 
@@ -26,14 +23,17 @@ warnings.filterwarnings("ignore")
 
 base_path = "o4h_all_events.csv"
 
-# List of activities to filter from dataset
-SELECTED_ACTIVITIES = ["Using_the_toilet", "Napping", "Showering", "Eating", "Cooking"]
+save_path = "o4h_activity_dataframe.csv"
+
+# List of activities
+ACTIVITIES_LIST = ["sleeping", "cooking", "bathing", "toileting", "eating", "unknown"]
+LOCATIONS_LIST = ["bedroom", "bathroom", "kitchen", "livingroom", "unknown"]
 
 
 """
 #####################
 
-1 Minute Interval
+1 Minute Interval Dataset
 
 #####################
 """
@@ -58,26 +58,56 @@ float_columns = merged_df.columns.difference(["location", "activity", "label"])
 # Convert selected columns to float
 merged_df[float_columns] = merged_df[float_columns].astype(float)
 
-# List of activities to filter from dataset
-selected_activities = ["Using_the_toilet", "Napping", "Showering", "Eating", "Cooking"]
-print("SELECTED ACTIVITES -> ", selected_activities)
+merged_df.to_csv(save_path)
 
-# selecting only required activities from dataset
-merged_df = filter_rows_based_on_given_values_list(merged_df, selected_activities, column="activity")
+# Dictionary mapping
+activity_mapping = {
+    "Using_the_toilet": "toileting",
+    "Napping": "sleeping",
+    "Showering": "bathing",
+    "Using_the_sink": "bathing",
+    "Preparing": "cooking",
+    "Eating": "eating",
+    "Cooking": "cooking",
+    "Washing_the_dishes": "cooking",
+}
+
+# Update values in 'activity' based on dictionary mapping
+merged_df["activity"] = merged_df["activity"].map(lambda x: activity_mapping.get(x, "unknown"))
+
 
 print("Activity Count before Over Sampling")
 print(unique_values_with_count(merged_df, "activity"))
 
-# Reset index to integer-based index instead of Time-based index
-merged_df = merged_df.sample(frac=1.0, random_state=42)
-merged_df.reset_index(drop=True, inplace=True)
 
-print("\n\nShape of final Preprocessed Dataset\nRow =", merged_df.shape[0], " Columns =", merged_df.shape[1])
+"""
+#####################
+
+Balanced Data
+
+#####################
+"""
+# Reset index to integer-based index instead of Time-based index
+resampled_df = merged_df.sample(frac=1.0, random_state=42)
+resampled_df.reset_index(drop=True, inplace=True)
+
+print("\n\nShape of final Preprocessed Dataset\nRows =", resampled_df.shape[0], " Columns =", resampled_df.shape[1])
 
 # applying oversampling and getting features and labels
-X_resampled_df, y_resampled_df = get_balanced_data(merged_df)
+X_resampled, y_resampled = get_feature_and_label(resampled_df)
+X_balanced_df, y_balanced_df = get_balanced_data(X_resampled, y_resampled)
 
+print("\n\nShape of Balanced Dataset\nRows =", X_balanced_df.shape[0], " Columns =", X_balanced_df.shape[1])
 
+"""
+#####################
+
+UnBalanced Data
+
+#####################
+"""
+X, y = get_feature_and_label(merged_df)
+print("\n\nUnbalanced Data - Features Shape\nRows =", X.shape[0], " Columns =", X.shape[1])
 """
 #####################
 
@@ -87,10 +117,15 @@ DECISION TREE
 """
 
 
+"""
+    ##########################################
+    DECISION TREE - Balanced Data
+    ##########################################
+"""
 # parameters for the DecisionTreeClassifier
 dt_params = {
     "criterion": "gini",  # 'gini', 'entropy'
-    "max_depth": 7,  # 5, 6, 7, 8, 9, 10
+    "max_depth": 3,  # 3, 4, 5
     "min_samples_split": 2,
     "min_samples_leaf": 1,
     "max_features": "sqrt",  # 'sqrt', 'log2'
@@ -100,121 +135,91 @@ dt_params = {
 # Define the DecisionTreeClassifier with the best parameters
 decision_tree = DecisionTreeClassifier(**dt_params)
 
-# Train the Decision Tree classifier on the resampled data using 10-fold cross-validation
-model, evaluation_results = model_training_and_testing(decision_tree, X_resampled_df, y_resampled_df)
+# Train the Decision Tree classifier
+model, evaluation_results = model_train_test_split(decision_tree, X_balanced_df, y_balanced_df, ACTIVITIES_LIST)
 
 # Print the evaluation results
-print("DECISION TREE METRICES")
-print(evaluation_results)
+print("\n\n")
+print("DECISION TREE - (Balanced) METRICES")
+print_metrices(evaluation_results)
 
-print("\n\n\n")
 """
-#####################
-
-SVM MODEL
-
-#####################
+    ##########################################
+    DECISION TREE - UnBalanced Data
+    ##########################################
 """
-from sklearn.svm import SVC
 
-svm_params = {"kernel": "linear", "C": 1.0}
+# parameters for the DecisionTreeClassifier
+dt_params = {
+    "criterion": "gini",  # 'gini', 'entropy'
+    "max_depth": 3,  # 3, 4, 5
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": "sqrt",  # 'sqrt', 'log2'
+    "random_state": 42,
+}
 
-# Create SVM classifier
-svm_classifier = SVC(**svm_params)
+# Define the DecisionTreeClassifier with the best parameters
+decision_tree = DecisionTreeClassifier(**dt_params)
 
-# Train the Decision Tree classifier on the resampled data using 10-fold cross-validation
-model, evaluation_results = model_training_and_testing(svm_classifier, X_resampled_df, y_resampled_df)
+# Train the Decision Tree classifier
+model, evaluation_results = model_train_test_split(decision_tree, X, y, ACTIVITIES_LIST)
 
 # Print the evaluation results
-print("SVM METRICES")
-print(evaluation_results)
-print("\n\n\n")
+print("\n\n")
+print("DECISION TREE (UnBalanced) METRICES")
+print_metrices(evaluation_results)
+
+
 """
 #####################
 
-RANDOM FOREST
+RULE BASED SYSTEM
 
 #####################
 """
-from sklearn.ensemble import RandomForestClassifier
+
 
 """
-Param Explaination
-- n_estimators: The number of trees in the forest (default: 100)
-- max_depth: The maximum depth of the trees (default: None)
-- min_samples_split: The minimum number of samples required to split an internal node (default: 2)
-- min_samples_leaf: The minimum number of samples required to be at a leaf node (default: 1)
-- random_state: Random seed for reproducibility (default: None)
+    ##########################################
+    STAGE 1 - LOCATION
+    ##########################################
 """
 
-rf_params = {"n_estimators": 100, "max_depth": 5, "min_samples_split": 2, "min_samples_leaf": 1, "random_state": 42}
+merged_df["location_prediction"] = merged_df.apply(get_location, axis=1).ffill()
 
-# Define the RandomForestClassifier with the best parameters
-rf_classifier = RandomForestClassifier(**rf_params)
+# location mapping
+location_mapping = {"Bathroom": "bathroom", "Living_room": "livingroom", "Kitchen": "kitchen", "Bedroom": "bedroom"}
 
-# Train the RandomForestClassifier on the resampled data using 10-fold cross-validation
-model, evaluation_results = model_training_and_testing(rf_classifier, X_resampled_df, y_resampled_df)
+# Cleaning the location names
+merged_df["location_cleaned"] = merged_df["location"].map(lambda x: location_mapping.get(x, "unknown"))
+
+# Get evaluation_results for location_prediction
+evaluation_results = calculate_metrics(merged_df["location_cleaned"], merged_df["location_prediction"], LOCATIONS_LIST)
 
 # Print the evaluation results
-print("RANDOM FOREST METRICES")
-print(evaluation_results)
-
-print("\n\n\n")
+print("\n\n")
+print("Rule based - Location Classification")
+print_metrices(evaluation_results)
 
 """
-#####################
-
-HMM MODEL
-
-#####################
+    ##########################################
+    STAGE 2 - ACTIVITY
+    ##########################################
 """
-from hmmlearn import hmm
+# Storing Activities based on Rules
+activities = []
+for index in range(merged_df.shape[0]):
+    activity = get_activity_label(merged_df, index)
+    activities.append(activity)
 
-# Define the number of hidden states for the HMM
-num_hidden_states = 8
+# Adding activity_prediction into merged_df
+merged_df["activity_prediction"] = activities
 
-# Initialize a Gaussian HMM model with specified parameters
-model = hmm.GaussianHMM(n_components=num_hidden_states, covariance_type="full", n_iter=100)
+# getting evaluation_results
+evaluation_results = calculate_metrics(merged_df["activity"], merged_df["activity_prediction"], ACTIVITIES_LIST)
 
-
-# Drop columns that are not used as features for the model
-X = X_resampled_df
-
-# Convert the data in X to numeric format, coercing errors to NaN
-X = X.apply(pd.to_numeric, errors="coerce")
-
-# Fit the HMM model to the data
-model.fit(X)
-
-# Predict the hidden states for each observation in X
-hidden_states = model.predict(X)
-
-hmm_df = pd.DataFrame()
-
-# Add the predicted hidden states as a new column in the DataFrame
-hmm_df["hidden_state"] = hidden_states
-hmm_df["activity"] = y_resampled_df["activity"]
-
-
-# Initialize an empty dictionary to store the mapping
-mapping = {}
-
-# Iterate over each unique hidden state in the HMM Model
-for state in hmm_df["hidden_state"].unique():
-    # Filter the DataFrame to include only rows with the current hidden state
-    subset = hmm_df[hmm_df["hidden_state"] == state]
-
-    # Find the most common activity associated with the current hidden state
-    most_common_activity = subset["activity"].mode().iloc[0]
-    # Add the mapping between the hidden state and its most common activity to the dictionary
-    mapping[state] = most_common_activity
-
-# Print the mapping dictionary
-print("HMM [State:Label] Mapping :", mapping)
-
-
-# Add a new column "hidden_label" to the DataFrame by mapping each hidden state to its most common activity
-hmm_df["hidden_label"] = hmm_df["hidden_state"].map(mapping)
-hmm_metric_scores = calculate_metrics(hmm_df["activity"], hmm_df["hidden_label"], SELECTED_ACTIVITIES)
-print("HMM Model Metrices")
-print(hmm_metric_scores)
+# printing evaluation_results
+print("\n\n")
+print("Rule based - Activity Classification")
+print_metrices(evaluation_results)

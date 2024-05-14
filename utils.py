@@ -1,9 +1,8 @@
 import pandas as pd
-import numpy as np
 
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split
 
 
 def read_csv_to_dataframe(csv_file):
@@ -249,7 +248,7 @@ def get_motion_count_from_presence_dataframe(df, frequency="1T"):
     interval = "5S" if frequency == "1T" else "1T"  # 5 Seconds intervals
 
     # Define the presence items to consider
-    presence_items = ["kitchen_presence", "bathroom_presence", "office_presence", "bedroom_presence"]
+    presence_items = ["kitchen_presence", "bathroom_presence", "livingroom_presence_table", "bedroom_presence"]
 
     # Filter the DataFrame to include only rows related to presence items
     filtered_df = filter_rows_based_on_given_values_list(df, presence_items)
@@ -269,7 +268,7 @@ def get_motion_count_from_presence_dataframe(df, frequency="1T"):
     # Fill missing values with forward fill method and fill remaining NaNs with 0
     resampled_cleaned_df = df_resampled.ffill().fillna(0)
 
-    # Resample the DataFrame to 10-minute intervals and calculate the sum of motion counts within each interval
+    # Resample the DataFrame to 1-minute intervals and calculate the sum of motion counts within each interval
     output_df = resampled_cleaned_df.resample(frequency).sum()
 
     # Return the final DataFrame containing aggregated motion counts
@@ -296,11 +295,11 @@ def get_cleaned_sensor_dataframe(df, frequency="1T"):
     pivot_df = transform_to_equal_interval(df.copy(), frequency=frequency)
 
     # Define rooms and sensors
-    rooms = ["kitchen", "bedroom", "bathroom", "livingroom", "office"]
-    sensors = ["CO2", "temperature", "luminosity", "humidity"]
+    rooms = ["kitchen", "bedroom", "bathroom", "livingroom"]
+    sensors = ["CO2", "temperature", "luminosity", "humidity", "noise"]
 
     # Create a list of columns to select
-    columns = ["label"]
+    columns = ["label", "livingroom_table_noise"]
     for room in rooms:
         for sensor in sensors:
             column = room + "_" + sensor
@@ -318,11 +317,14 @@ def get_cleaned_sensor_dataframe(df, frequency="1T"):
     return minimal_df
 
 
-def get_balanced_data(merged_df):
+def get_feature_and_label(merged_df):
     # features are in X and labels are in y
     X = merged_df.drop(columns=["location", "activity", "label"])
     y = merged_df["activity"]
+    return X, y
 
+
+def get_balanced_data(X, y):
     try:
         # Defining SMOTE
         smote = SMOTE()
@@ -343,9 +345,9 @@ def get_balanced_data(merged_df):
     return X_resampled_df, y_resampled_df
 
 
-def model_training_and_testing(model, X_resampled, y_resampled):
+def model_train_test_split(model, X_resampled, y_resampled, labels=None):
     """
-    Train a model on resampled data using 10-fold cross-validation and calculate multiple evaluation metrics.
+    Train a model on resampled data using train-test split and calculate evaluation metrics.
 
     Parameters:
     model (object): The model to train (e.g., DecisionTreeClassifier).
@@ -355,46 +357,30 @@ def model_training_and_testing(model, X_resampled, y_resampled):
     Returns:
     dict: Dictionary containing evaluation metrics (accuracy, precision, recall, F1-score).
     """
-    # Initialize 10-fold stratified cross-validation
-    k_fold = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.8, random_state=42)
 
-    # Lists to store evaluation metric scores
-    accuracy_scores = []
-    precision_scores = []
-    recall_scores = []
-    f1_scores = []
+    # Fit the model
+    model.fit(X_train, y_train)
 
-    # Perform cross-validation
-    for train_index, test_index in k_fold.split(X_resampled, y_resampled):
-        # print(type(train_index), test_index)
-        # return None
-        X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
-        y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
+    # Predict on the test set
+    y_pred = model.predict(X_test)
 
-        # Fit the model
-        model.fit(X_train, y_train)
-
-        # Predict on the test set
-        y_pred = model.predict(X_test)
-
-        # Calculate evaluation metrics
-        accuracy_scores.append(accuracy_score(y_test, y_pred))
-        precision_scores.append(precision_score(y_test, y_pred, average="weighted"))
-        recall_scores.append(recall_score(y_test, y_pred, average="weighted"))
-        f1_scores.append(f1_score(y_test, y_pred, average="weighted"))
-
-    # Calculate mean of evaluation metric scores
-    mean_accuracy = np.mean(accuracy_scores)
-    mean_precision = np.mean(precision_scores)
-    mean_recall = np.mean(recall_scores)
-    mean_f1 = np.mean(f1_scores)
+    # Calculate evaluation metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average="macro")
+    recall = recall_score(y_test, y_pred, average="macro")
+    f1 = f1_score(y_test, y_pred, average="macro")
+    CM = confusion_matrix(y_test, y_pred, labels=labels if labels else None)
 
     # Return evaluation metrics as a dictionary
     evaluation_metrics = {
-        "Accuracy": mean_accuracy,
-        "Precision": mean_precision,
-        "Recall": mean_recall,
-        "F1-score": mean_f1,
+        "Accuracy": accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1-score": f1,
+        "Confusion-Matrix": CM,
+        "labels": labels,
     }
 
     return model, evaluation_metrics
@@ -419,7 +405,7 @@ def get_decision_tree_structure(model, feature_names):
     return tree_structure
 
 
-def calculate_metrics(actual, predicted, selected_activities):
+def calculate_metrics(actual, predicted, labels=None):
     """
     Calculate multiple machine learning metrics based on actual truth and predictions.
 
@@ -449,7 +435,33 @@ def calculate_metrics(actual, predicted, selected_activities):
     metrics["F1 Score"] = f1_score(actual, predicted, average=average)
 
     # Calculate confusion matrix and store it in the metrics dictionary
-    metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=selected_activities)
+    metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=labels)
+
+    metrics["labels"] = labels
 
     # Return the computed metrics
     return metrics
+
+
+def print_metrices(metrics):
+    """
+    Print the evaluation metrics.
+
+    Parameters:
+    metrics (dict): Dictionary containing evaluation metrics
+
+    Returns:
+    None
+    """
+    for metric in metrics:
+        # Skip the "labels" key
+        if metric == "labels":
+            continue
+
+        # Print confusion matrix separately
+        if "Confusion" in metric:
+            print(f"{metric} | Sequence -> {metrics.get('labels')}\n")
+            print(metrics[metric])
+        else:
+            # Print other metrics with percentage format
+            print(f"{metric: <12} - {metrics[metric] * 100:.2f} %")
