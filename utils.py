@@ -274,7 +274,7 @@ def get_cleaned_sensor_dataframe(df, frequency="1T"):
 
 
 # Function to split DataFrame into features and labels
-def get_feature_and_label(df):
+def get_feature_and_label(df, labels=["location", "location_int", "activity"]):
     """
     Split DataFrame into features and labels.
 
@@ -284,8 +284,8 @@ def get_feature_and_label(df):
     Returns:
     pandas.DataFrame, pandas.DataFrame: Features and labels.
     """
-    X = df.drop(columns=["location", "activity", "label"])
-    y = df[["location", "activity"]]
+    X = df.drop(columns=labels)
+    y = df[labels]
     return X, y
 
 
@@ -361,7 +361,7 @@ def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequen
     # Calculate evaluation metrics
     evaluation_metrics = calculate_metrics(y_test, y_pred, labels=label_sequence)
 
-    return model, evaluation_metrics
+    return model, evaluation_metrics, y_pred
 
 
 # Function to train a model and calculate evaluation metrics

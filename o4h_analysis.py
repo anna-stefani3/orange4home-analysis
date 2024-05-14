@@ -82,7 +82,20 @@ activity_mapping = {
 # Update values in 'activity' column based on the dictionary mapping
 merged_df["activity"] = merged_df["activity"].map(lambda x: activity_mapping.get(x, "unknown"))
 
+# Define a dictionary for mapping the location names
+location_mapping = {"Bathroom": "bathroom", "Living_room": "livingroom", "Kitchen": "kitchen", "Bedroom": "bedroom"}
 
+location_int_mapping = {"bathroom": 1, "livingroom": 2, "kitchen": 3, "bedroom": 4, "unknown": 5}
+
+
+# Map and clean the location names using the defined mapping
+merged_df["location"] = merged_df["location"].map(lambda x: location_mapping.get(x, "unknown"))
+
+# Map and clean the location names using the defined mapping
+merged_df["location_int"] = merged_df["location"].map(lambda x: location_int_mapping.get(x, 5))
+
+
+merged_df.drop(columns="label", inplace=True)
 """
 #####################
 
@@ -189,8 +202,10 @@ DT = DecisionTreeClassifier(**dt_params)
     DECISION TREE - Balanced Data
     ##########################################
 """
+
+
 # Train the Decision Tree classifier using the balanced dataset
-model, evaluation_results = model_train_test_score(
+model, evaluation_results, _ = model_train_test_score(
     DT, X_balanced_train_df, X_test, y_balanced_train_df["activity"], y_test["activity"], ACTIVITIES_LIST
 )
 
@@ -206,15 +221,60 @@ print_metrices(evaluation_results)
     ##########################################
 """
 
-# Train the Decision Tree classifier using the unbalanced dataset
-model, evaluation_results = model_train_test_score(
-    DT, X_train, X_test, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+# Initialize the DecisionTreeClassifier with the specified parameters
+DT = DecisionTreeClassifier(**dt_params)
+
+X_train_location = X_train[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
+X_test_location = X_test[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
+# Train the Decision Tree classifier using the balanced dataset
+model, evaluation_results, location = model_train_test_score(
+    DT, X_train_location, X_test_location, y_train["location"], y_test["location"], LOCATIONS_LIST
 )
+
 
 # Display the evaluation results for the trained Decision Tree model
 print("\n\n")
-print("DECISION TREE (Unbalanced) METRICS")
+print("DECISION TREE - (Unbalanced) LOCATION METRICS")
 print_metrices(evaluation_results)
+
+
+X_test_activity = X_test.copy()
+X_test_activity["location_int"] = [location_int_mapping[key] for key in location]
+
+X_train_activity = X_train.copy()
+X_train_activity["location_int"] = y_train["location_int"]
+
+activity_location_map = {
+    "sleeping": "bedroom",
+    "cooking": "kitchen",
+    "bathing": "bathroom",
+    "toileting": "bathroom",
+    "eating": "livingroom",
+}
+
+for activity in ACTIVITIES_LIST[:-1]:
+    selected_features = [col for col in X_train_activity.columns if col.startswith(activity_location_map[activity])]
+
+    selected_features.append("location_int")
+    X_train_activity = X_train_activity[selected_features]
+    X_test_activity = X_test_activity[selected_features]
+
+    # Vectorized comparison using np.where
+    y_train_activity = y_train["activity"].apply(lambda x: x if x == activity else "unknown")
+    y_test_activity = y_test["activity"].apply(lambda x: x if x == activity else "unknown")
+
+    # Initialize the DecisionTreeClassifier with the specified parameters
+    DT = DecisionTreeClassifier(**dt_params)
+
+    # Train the Decision Tree classifier using the unbalanced dataset
+    model, evaluation_results, _ = model_train_test_score(
+        DT, X_train_activity, X_test_activity, y_train_activity, y_test_activity, [activity, "unknown"]
+    )
+
+    # Display the evaluation results for the trained Decision Tree model
+    print("\n\n")
+    print("DECISION TREE -> ", activity)
+    print_metrices(evaluation_results)
 
 
 """
@@ -232,16 +292,10 @@ RULE BASED SYSTEM
     ##########################################
 """
 # Apply the get_location function to each row to predict the location and forward fill any missing values
-X_test["location_prediction"] = X_test.apply(get_location, axis=1).ffill()
-
-# Define a dictionary for mapping the location names
-location_mapping = {"Bathroom": "bathroom", "Living_room": "livingroom", "Kitchen": "kitchen", "Bedroom": "bedroom"}
-
-# Map and clean the location names using the defined mapping
-y_test["location_cleaned"] = y_test["location"].map(lambda x: location_mapping.get(x, "unknown"))
+location_prediction = X_test.apply(get_location, axis=1).ffill()
 
 # Calculate evaluation metrics for the predicted location against the actual cleaned location
-evaluation_results = calculate_metrics(y_test["location_cleaned"], X_test["location_prediction"], LOCATIONS_LIST)
+evaluation_results = calculate_metrics(y_test["location"], location_prediction, LOCATIONS_LIST)
 
 # Print the evaluation results for the location prediction
 print("\n\n")
