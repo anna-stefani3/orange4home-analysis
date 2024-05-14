@@ -4,246 +4,195 @@ from statistics import mean
 
 def get_indexes_of_motion(row):
     """
-    Function to return the indexes where the value is 1 in a pandas Series.
+    Retrieve indexes where the maximum value occurs in a pandas Series.
 
     Parameters:
-    series (pandas.Series): The pandas Series to search.
+    row (pandas.Series): The pandas Series to analyze.
 
     Returns:
-    list: A list of indexes where the value is greater than 0.
+    list: List of indexes where the maximum value occurs.
     """
-    # Use the index attribute of the Series along with boolean indexing to get the indexes where the value is 1
     return row.index[row == max(row)].tolist()
 
 
-import numpy as np
-
-
 def get_location(row):
-    # Extract relevant data columns from the row
-    data = row[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
+    """
+    Determine the location based on motion detection columns.
 
-    # Get indexes of columns with motion detected
+    Parameters:
+    row (pandas.Series): Row containing motion detection data.
+
+    Returns:
+    str: Detected location or "unknown".
+    """
+    data = row[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
     indexes = get_indexes_of_motion(data)
 
-    # Check if all values are zero
     if max(data) == 0:
         return "unknown"
 
-    # Check if only one motion is detected
     if len(indexes) == 1:
-        # Extract the location from the index
         return indexes[0].split("_")[0]
     else:
-        # Return NaN if multiple motions are detected
         return np.NaN
 
 
 def get_max(values):
     """
-    Get the maximum value from a list of values, excluding the last value.
+    Retrieve the maximum value from a list, excluding the last element.
 
     Parameters:
-    values (list): List of numeric values
+    values (list): List of numeric values.
 
     Returns:
-    float: Maximum value from the list, excluding the last value
+    float: Maximum value excluding the last element.
     """
-    # Check if the list is not empty
     if values[:-1]:
-        # Return the maximum value excluding the last value
         return max(values[:-1])
     else:
-        # Return the first value if the list is empty
         return values[0]
-
-
-from statistics import mean
 
 
 def get_mean(values):
     """
-    Calculate the mean of a list of values, excluding the last value.
+    Calculate the mean of a list, excluding the last element.
 
     Parameters:
-    values (list): List of numeric values
+    values (list): List of numeric values.
 
     Returns:
-    float: Mean of the values, excluding the last value
+    float: Mean of the values excluding the last element.
     """
-    # Check if the list is not empty
     if values[:-1]:
-        # Return the mean of the values excluding the last value
         return mean(values[:-1])
     else:
-        # Return the first value if the list is empty
         return values[0]
 
 
-def is_cooking_or_eating(humidity_history, temperature_history, sound_history):
+def is_cooking(humidity_history, temperature_history, noise):
     """
-    Determine if the current activity is cooking or eating based on historical data.
+    Determine if the activity is cooking based on historical data.
 
     Parameters:
-    humidity_history (list): List of humidity values
-    temperature_history (list): List of temperature values
-    sound_history (list): List of sound values
+    humidity_history (list): List of humidity values.
+    temperature_history (list): List of temperature values.
+    noise (int): Noise level.
 
     Returns:
-    str: "cooking" if cooking activity is detected, "eating" otherwise
+    str: "cooking" if cooking activity is detected, "unknown" otherwise.
     """
-    # Get the current humidity value
     current_humidity = humidity_history[-1]
+    is_humidity_increasing = current_humidity > get_max(humidity_history)
+    humidity_threshold = 40
+    is_high_humidity = current_humidity > humidity_threshold
 
-    # Check if the current humidity is higher than the maximum humidity
-    is_high_humidity = current_humidity > get_max(humidity_history)
-
-    # Get the current temperature value
     current_temperature = temperature_history[-1]
+    is_high_temperature = current_temperature > get_max(temperature_history)
 
-    # Check if the current temperature is increasing
-    is_temperature_increasing = current_temperature > get_mean(temperature_history)
-
-    # Get the current sound value
-    current_sound = sound_history[-1]
-
-    # Check if the current sound level is higher than the maximum sound level
-    is_high_noise = current_sound > get_max(sound_history)
-
-    # Determine the activity based on the conditions
-    if is_high_humidity or is_temperature_increasing or is_high_noise:
+    if is_high_humidity or is_humidity_increasing or noise >= 2 or is_high_temperature:
         return "cooking"
     else:
-        return "eating"
+        return "unknown"
 
 
-def is_sleeping(co2_history, motion):
+def is_sleeping(co2_history, luminosity, motion, noise):
     """
-    Determine if the current activity is sleeping based on CO2 levels and motion.
+    Determine if the activity is sleeping based on luminosity, motion, and noise.
 
     Parameters:
-    co2_history (list): List of CO2 values
-    motion (int): Motion detection value (0 for no motion, 1 for motion)
+    co2_history (list[float]): CO2 level.
+    luminosity (int): Luminosity level.
+    motion (int): Motion level.
+    noise (int): Noise level.
 
     Returns:
-    str: "sleeping" if sleeping activity is detected, "unknown" otherwise
+    str: "sleeping" if sleeping activity is detected, "unknown" otherwise.
     """
-    # Get the current CO2 value
     current_co2 = co2_history[-1]
+    is_co2_increasing = current_co2 > get_max(co2_history)
 
-    # Check if the current CO2 level is higher than the maximum CO2 level
-    is_high_co2 = current_co2 > get_max(co2_history)
+    luminosity_sleep_threshold = 50
+    is_low_luminosity = luminosity <= luminosity_sleep_threshold
 
-    # Determine the activity based on the conditions
-    if is_high_co2 and motion == 0:
+    if is_low_luminosity and (noise <= 2 or motion <= 2 or is_co2_increasing):
         return "sleeping"
     else:
         return "unknown"
 
 
-def is_bathing_or_toileting(humidity_history, co2_history, motion_history):
+def is_bathing(humidity_history, motion):
     """
-    Determine if the current activity is bathing or toileting based on historical data.
+    Determine if the activity is bathing or toileting based on historical humidity and motion.
 
     Parameters:
-    humidity_history (list): List of humidity values
-    co2_history (list): List of CO2 values
-    motion_history (list): List of motion count values
+    humidity_history (list): List of humidity values.
+    motion (int): Motion level.
 
     Returns:
-    str: "bathing" if bathing activity is detected, "toileting" otherwise
+    str: "bathing" if bathing activity is detected, "toileting" otherwise.
     """
-    # Get the current humidity value
     current_humidity = humidity_history[-1]
-
-    # Check if the current humidity is higher than the maximum humidity
-    is_high_humidity = current_humidity > get_max(humidity_history)
-
-    # Get the current CO2 value
-    current_co2 = co2_history[-1]
-
-    # Check if the current CO2 level is higher than the maximum CO2 level
-    is_high_co2 = current_co2 > get_max(co2_history)
-
-    # Get the current motion count value
-    current_motion_count = motion_history[-1]
-
-    # Check if the current motion count is higher than the maximum motion count
-    is_high_motion_count = current_motion_count > get_max(motion_history)
-
-    # Determine the activity based on the conditions
-    if (is_high_humidity or is_high_co2) and is_high_motion_count:
+    is_humidity_increasing = current_humidity > get_max(humidity_history)
+    humidity_threshold = 40
+    is_high_humidity = current_humidity > humidity_threshold
+    if motion > 10 or is_high_humidity or is_humidity_increasing:
         return "bathing"
     else:
         return "toileting"
 
 
-def is_socialising_or_eating(co2_history, motion_history):
+def is_eating(motion, luminosity):
     """
-    Determine if the current activity is socialising or eating based on CO2 levels and motion count.
+    Determine if the activity is eating based on motion and luminosity.
 
     Parameters:
-    co2_history (list): List of CO2 values
-    motion_history (list): List of motion count values
+    motion (int): Motion level.
+    luminosity (int): Luminosity level.
 
     Returns:
-    str: "socialising" if socialising activity is detected, "eating" otherwise
+    str: "eating" if eating activity is detected, "unknown" otherwise.
     """
-    # Get the current CO2 value
-    current_co2 = co2_history[-1]
-
-    # Check if the current CO2 level is higher than the maximum CO2 level
-    is_high_co2 = current_co2 > get_max(co2_history)
-
-    # Get the current motion count value
-    current_motion_count = motion_history[-1]
-
-    # Check if the current motion count is higher than the maximum motion count
-    is_high_motion_count = current_motion_count > get_max(motion_history)
-
-    # Determine the activity based on the conditions
-    if is_high_co2 and is_high_motion_count:
-        return "socialising"
-    else:
+    if luminosity > 400 and motion > 8:
         return "eating"
+    else:
+        return "unknown"
 
 
 def get_activity_label(df, index):
     """
-    Determine the activity label based on the predicted location and historical sensor data.
+    Determine the activity label based on location prediction and sensor data.
 
     Parameters:
-    df (DataFrame): DataFrame containing sensor data and predictions
-    index (int): Index of the current data point
+    df (DataFrame): DataFrame containing sensor data and predictions.
+    index (int): Index of the current data point.
 
     Returns:
-    str: Activity label (e.g., "sleeping", "bathing", "cooking", "socialising", "unknown")
+    str: Activity label (e.g., "sleeping", "bathing", "cooking", "eating", "unknown").
     """
-    # Retrieve the predicted location at the given index
     location = df["location_prediction"][index]
 
-    # Determine the activity based on the predicted location
     if location == "bedroom":
         co2_history = df["bedroom_CO2"][max(index - 10, 0) : index + 1].to_list()
+        luminosity = df["bedroom_luminosity"][index]
         motion = df["bedroom_presence"][index]
-        return is_sleeping(co2_history, motion)
+        noise = df["bedroom_noise"][index]
+        return is_sleeping(co2_history, luminosity, motion, noise)
 
     elif location == "bathroom":
-        co2_history = df["bathroom_CO2"][max(index - 10, 0) : index + 1].to_list()
         humidity_history = df["bathroom_humidity"][max(index - 10, 0) : index + 1].to_list()
-        motion_history = df["bathroom_presence"][max(index - 10, 0) : index + 1].to_list()
-        return is_bathing_or_toileting(humidity_history, co2_history, motion_history)
+        motion = df["bathroom_presence"][index]
+        return is_bathing(humidity_history, motion)
 
     elif location == "kitchen":
         humidity_history = df["kitchen_humidity"][max(index - 10, 0) : index + 1].to_list()
         temperature_history = df["kitchen_temperature"][max(index - 10, 0) : index + 1].to_list()
-        sound_history = df["kitchen_noise"][max(index - 10, 0) : index + 1].to_list()
-        return is_cooking_or_eating(humidity_history, temperature_history, sound_history)
+        noise = df["kitchen_noise"][index]
+        return is_cooking(humidity_history, temperature_history, noise)
 
     elif location == "livingroom":
-        co2_history = df["livingroom_CO2"][max(index - 10, 0) : index + 1].to_list()
-        motion_history = df["livingroom_presence_table"][max(index - 10, 0) : index + 1].to_list()
-        return is_socialising_or_eating(co2_history, motion_history)
+        luminosity = df["livingroom_luminosity"][index]
+        motion = df["livingroom_presence_table"][index]
+        return is_eating(motion, luminosity)
 
     else:
         return "unknown"
