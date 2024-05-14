@@ -1,0 +1,306 @@
+﻿/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   ENTRANCE
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - entrance_heater_effective_setpoint            {14, 16, 19, 21}
+    - entrance_heater_temperature                   Real number
+    - entrance_heater_base_setpoint                 {19, 21}
+    - entrance_heater_effective_mode                {1, 3}
+    - entrance_light1                               {0, 100} 
+    - entrance_heater_command                       Integer    
+    - entrance_noise                                Real number
+    - entrance_door                                 {CLOSED, OPEN}           
+    - entrance_switch_left                          {OFF, ON}
+    
+    Possibly:
+        - staircase_switch_left
+        - staircase_switch_right
+        - livingroom_switch2_top_left
+        - livingroom_switch2_top_right
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   KITCHEN
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - kitchen_washingmachine_partial_energy         Integer
+    - kitchen_sink_coldwater_total                  Integer
+    - kitchen_oven_voltage                          Real number
+    - kitchen_cooktop_current                       Real number
+    - kitchen_oven_power                            Integer
+    - kitchen_dishwasher_voltage                    Real number
+    - kitchen_hood_partial_energy                   Integer
+    - kitchen_fridge_power                          Integer
+    - kitchen_sink_hotwater_total                   Integer
+    - kitchen_cooktop_total_energy                  Integer
+    - kitchen_humidity                              Integer
+    - kitchen_luminosity                            Real number
+    - kitchen_hood_voltage                          Real number
+    - kitchen_dishwasher_current                    Real number
+    - kitchen_oven_total_energy                     Integer
+    - kitchen_hood_current                          Real number
+    - kitchen_washingmachine_total_energy           Integer
+    - kitchen_cooktop_voltage                       Real number
+    - kitchen_fridge_partial_energy                 Integer
+    - kitchen_sink_hotwater_instantaneous           Real number
+    - kitchen_hood_power                            Integer
+    - kitchen_sink_coldwater_instantaneous          Real number
+    - kitchen_dishwasher_partial_energy             Integer
+    - kitchen_dishwasher_total_energy               Integer
+    - kitchen_dishwasher_power                      Integer
+    - kitchen_washingmachine_power                  Integer
+    - kitchen_fridge_total_energy                   Integer
+    - kitchen_light1                                {0, 100}
+    - kitchen_CO2                                   Real number
+    - kitchen_light2                                {0, 100}
+    - kitchen_oven_current                          Real number
+    - kitchen_fridge_voltage                        Real number
+    - kitchen_washingmachine_current                Real number
+    - kitchen_hood_total_energy                     Integer
+    - kitchen_cooktop_partial_energy                Integer
+    - kitchen_washingmachine_voltage                Real number
+    - kitchen_fridge_current                        Real number
+    - kitchen_presence                              {OFF, ON}
+    - kitchen_temperature                           Real number
+    - kitchen_cooktop_power                         Integer
+    - kitchen_oven_partial_energy                   Integer
+    - kitchen_cupboard1                             {CLOSED, OPEN}
+    - kitchen_noise                                 Real number
+    - kitchen_switch_bottom_right                   {OFF, ON}
+    - kitchen_switch_top_right                      {OFF, ON}
+    - kitchen_fridge_door                           {CLOSED, OPEN}
+    - kitchen_cupboard2                             {CLOSED, OPEN}
+    - kitchen_cupboard3                             {CLOSED, OPEN}
+    - kitchen_cupboard4                             {CLOSED, OPEN}
+    - kitchen_switch_top_left                       {OFF, ON}
+    - kitchen_switch_bottom_left                    {OFF, ON}
+    - kitchen_cupboard5                             {CLOSED, OPEN}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   LIVING ROOM
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - livingroom_presence_table                     {OFF, ON}
+    - livingroom_heater1_base_setpoint              {19, 21}
+    - livingroom_presence_couch                     {OFF, ON}
+    - livingroom_heater1_effective_mode             {1, 3}
+    - livingroom_heater2_effective_mode             {1, 3}
+    - livingroom_heater1_temperature                Real number
+    - livingroom_heater2_effective_setpoint         {14, 16, 19, 21}
+    - livingroom_couch_plug_consumption             Integer
+    - livingroom_table_luminosity                   Real number
+    - livingroom_tv_plug_consumption                Integer
+    - livingroom_heater1_effective_setpoint         {14, 16, 19, 21}
+    - livingroom_table_plug_consumption             Integer
+    - livingroom_temperature                        Real number
+    - livingroom_AC_setpoint                        {19, 21}
+    - livingroom_luminosity                         Real number
+    - livingroom_heater2_effective_setpoint         {14, 16, 19, 21}
+    - livingroom_light1                             {0, 100}
+    - livingroom_light2                             {0, 100}
+    - livingroom_heater2_temperature                Real number
+    - livingroom_humidity                           Integer
+    - livingroom_CO2                                Real number
+    - livingroom_heater2_command                    Integer
+    - livingroom_heater1_command                    Integer
+    - livingroom_tv_status                          {OFF, ON}
+    - livingroom_couch_noise                        Real number
+    - livingroom_table_noise                        Real number
+    - livingroom_switch1_bottom_left                {OFF, ON}
+    - livingroom_shutter2                           {0, 100}
+    - livingroom_shutter3                           {0, 100}
+    - livingroom_shutter4                           {0, 100}
+    - livingroom_shutter5                           {0, 100}
+    - livingroom_switch1_top_right                  {OFF, ON}
+    - livingroom_shutter1                           {0, 100}
+    - livingroom_switch1_top_left                   {OFF, ON}
+    - livingroom_window1                            {CLOSED, OPEN}
+    - livingroom_switch2_top_right                  {OFF, ON}
+    - livingroom_switch2_top_left                   {OFF, ON}
+    
+    Possibly:
+        - staircase_light
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   TOILET
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - toilet_light                                  {0, 100}
+    - toilet_coldwater_total                        Integer
+    - toilet_coldwater_instantaneous                Real number
+    - toilet_switch_left                            {OFF, ON}
+    - toilet_switch_right                           {OFF, ON}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   STAIRCASE
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - staircase_light                               {0, 100}
+    - staircase_switch_left                         {OFF, ON}
+    - staircase_switch_right                        {OFF, ON}
+    
+    Possibly:
+        - walkway_switch1_top_left
+        - walkway_switch1_top_right
+        - walkway_switch1_bottom_left
+        - walkway_switch1_bottom_right
+        - walkway_light
+        - walkway_noise
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   WALKWAY
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - walkway_light                                 {0, 100}
+    - walkway_noise                                 Real number
+    - walkway_switch1_bottom_right                  {OFF, ON}
+    - walkway_switch1_bottom_left                   {OFF, ON}
+    - walkway_switch1_top_left                      {OFF, ON}
+    - walkway_switch1_top_right                     {OFF, ON}
+    - walkway_switch2_top_left                      {OFF, ON}
+    - walkway_switch2_bottom_left                   {OFF, ON}
+    - walkway_switch2_bottom_right                  {OFF, ON}
+    - walkway_switch2_top_right                     {OFF, ON}
+    
+    Possibly:
+        - staircase_switch_left
+        - staircase_switch_right
+        - staircase_light
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   BATHROOM
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - bathroom_shower_coldwater_instantaneous       Real number
+    - bathroom_sink_coldwater_total                 Integer
+    - bathroom_heater_effective_setpoint            {14, 16, 19, 21}
+    - bathroom_shower_coldwater_total               Integer
+    - bathroom_CO2                                  Real number
+    - bathroom_presence                             {OFF, ON}
+    - bathroom_heater_effective_mode                {1, 3}
+    - bathroom_sink_coldwater_instantaneous         Real number
+    - bathroom_heater_temperature                   Real number
+    - bathroom_temperature                          Real number
+    - bathroom_sink_hotwater_total                  Integer
+    - bathroom_heater_base_setpoint                 {19, 21}
+    - bathroom_luminosity                           Real number
+    - bathroom_shower_hotwater_instantaneous        Real number
+    - bathroom_shower_hotwater_total                Integer
+    - bathroom_light1                               {0, 100}
+    - bathroom_light2                               {0, 100}
+    - bathroom_humidity                             Integer
+    - bathroom_heater_command                       Integer
+    - bathroom_sink_hotwater_instantaneous          Real number
+    - bathroom_switch_top_left                      {OFF, ON}
+    - bathroom_switch_bottom_left                   {OFF, ON}
+    - bathroom_switch_bottom_right                  {OFF, ON}
+    - bathroom_switch_top_right                     {OFF, ON}
+    - bathroom_door                                 {CLOSED, OPEN}
+    - bathroom_shower_door                          {CLOSED, OPEN}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   OFFICE
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - office_luminosity                             Real number
+    - office_presence                               {OFF, ON}
+    - office_desk_plug_consumption                  Integer
+    - office_tv_plug_consumption                    Integer
+    - office_heater_effective_mode                  {1, 3}
+    - office_AC_setpoint                            {19, 21, 22, 24}
+    - office_heater_effective_setpoint              {14, 16, 19, 21}
+    - office_heater_base_setpoint                   {19, 21}
+    - office_light                                  {0, 100}
+    - office_heater_command                         Integer
+    - office_heater_temperature                     Real number
+    - office_AC_mode                                {1, 3}
+    - office_tv_status                              {OFF, ON}
+    - office_noise                                  Real number
+    - office_shutter                                {0, 100}
+    - office_switch_left                            {OFF, ON}
+    - office_switch_right                           {OFF, ON}
+    - office_door                                   {CLOSED, OPEN}
+    - office_switch_middle                          {OFF, ON}
+    - office_window                                 {CLOSED, OPEN}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   BEDROOM
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - bedroom_AC_setpoint                           {19, 21}
+    - bedroom_heater2_effective_setpoint            {14, 16, 19, 21}
+    - bedroom_heater1_temperature                   Real number
+    - bedroom_luminosity                            Real number
+    - bedroom_CO2                                   Real number
+    - bedroom_heater1_effective_mode                {1, 3}
+    - bedroom_heater1_effective_setpoint            {14, 16, 19, 21}
+    - bedroom_heater2_effective_mode                {1, 3}
+    - bedroom_temperature                           Real number
+    - bedroom_humidity                              Integer
+    - bedroom_light1                                {0, 100}
+    - bedroom_light2                                {0, 100}
+    - bedroom_light3                                {0, 100}
+    - bedroom_light4                                {0, 100}
+    - bedroom_heater1_base_setpoint                 {19, 21}
+    - bedroom_heater2_base_setpoint                 {19, 21}
+    - bedroom_heater2_temperature                   Real number
+    - bedroom_presence                              {OFF, ON}
+    - bedroom_heater1_command                       Integer
+    - bedroom_heater2_command                       Integer
+    - bedroom_noise                                 Real number
+    - bedroom_shutter1                              {0, 100}
+    - bedroom_shutter2                              {0, 100}
+    - bedroom_switch_top_left                       {OFF, ON}
+    - bedroom_switch_top_right                      {OFF, ON}
+    - bedroom_switch_bottom_left                    {OFF, ON}
+    - bedroom_switch_bottom_right                   {OFF, ON}
+    - bedroom_closet_door                           {CLOSED, OPEN}
+    - bedroom_door                                  {CLOSED, OPEN}
+    - bedroom_bed_pressure                          Integer
+    - bedroom_switch_middle_left                    {OFF, ON}
+    - bedroom_drawer1                               {CLOSED, OPEN}
+    - bedroom_drawer2                               {CLOSED, OPEN}
+    - bedroom_switch_middle_right                   {OFF, ON}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   GLOBAL
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    - global_waterheater_voltage                    Real number
+    - global_waterheater_partial_energy             Integer
+    - global_shutters_voltage                       Real number
+    - global_waterheater_status                     {OFF, ON}
+    - global_pressure_trend_ext                     {down, up, equal}
+    - global_condition_id_ext                       {300, 301, 310, 500, 501, 701, 741, 800, 801, 802, 803, 804}
+    - global_temperature_feel_ext                   Real number
+    - global_humidity_ext                           Integer
+    - global_wind_speed_ext                         Real number
+    - global_condition_ext                          {Bruine légère, Bruine, Pluie fine éparse, légères pluies, pluies modérées, brume, brouillard, ensoleillé, peu nuageux, partiellement ensoleillé, nuageux, Couvert}
+    - global_pressure_ext                           Real number
+    - global_rain_ext                               Real number
+    - global_temperature_ext                        Real number
+    - global_wind_direction_ext                     {SSE, S, N, NE, NNE, ENE, NW, ESE, SE, E, WNW, SW, WSW, NNW, W, SSW}
+    - global_commonID_ext                           {few-showers, fog, sunny, partly-cloudy-day, mostly-cloudy-day, cloudy}
+    - global_snow_ext                               Real number
+    - global_clouds_ext                             Integer
+    - global_shutters_current                       Real number
+    - global_coldwater_instantaneous                Real number
+    - global_current                                Real number
+    - global_power_factor                           Real number
+    - global_voltage                                Real number
+    - global_active_power                           Real number
+    - global_gas_total                              Integer
+    - global_active_energy                          Real number
+    - global_frequency                              Real number
+    - global_waterheater_total_energy               Integer
+    - global_shutters_total_energy                  Integer
+    - global_shutters_partial_energy                Integer
+    - global_shutters_power                         Integer
+    - global_waterheater_power                      Integer
+    - global_lighting_voltage                       Real number
+    - global_coldwater_total                        Integer
+    - global_waterheater_current                    Real number
+    - global_lighting_total_energy                  Integer
+    - global_heaters_setpoint                       {19, 21}
+    - global_lighting_current                       Real number
+    - global_lighting_partial_energy                Integer
+    - global_lighting_power                         Integer
+    - global_heaters_temperature                    Real number
