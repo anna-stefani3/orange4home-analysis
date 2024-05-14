@@ -19,9 +19,10 @@ from utils import (
     get_feature_and_label,
     model_train_test_score,
     get_day_wise_group_df,
+    get_top_features,
 )
 
-from rules import get_location, get_activity_label
+from rules import get_location, get_activity_label, is_increasing
 
 import warnings
 
@@ -85,6 +86,7 @@ merged_df["activity"] = merged_df["activity"].map(lambda x: activity_mapping.get
 # Define a dictionary for mapping the location names
 location_mapping = {"Bathroom": "bathroom", "Living_room": "livingroom", "Kitchen": "kitchen", "Bedroom": "bedroom"}
 
+# Define a dictionary for mapping the location to int (Needed For Decision Tree)
 location_int_mapping = {"bathroom": 1, "livingroom": 2, "kitchen": 3, "bedroom": 4, "unknown": 5}
 
 
@@ -94,8 +96,94 @@ merged_df["location"] = merged_df["location"].map(lambda x: location_mapping.get
 # Map and clean the location names using the defined mapping
 merged_df["location_int"] = merged_df["location"].map(lambda x: location_int_mapping.get(x, 5))
 
-
+# removing useless column -> "label"
 merged_df.drop(columns="label", inplace=True)
+
+
+"""
+#####################
+
+Adding New Features
+
+#####################
+"""
+
+# Calculate if kitchen humidity is increasing (True/False)
+merged_df["kitchen_humidity_is_increasing"] = (
+    merged_df["kitchen_humidity"].rolling(10, min_periods=3).apply(is_increasing, raw=True)
+)
+# Calculate if kitchen temperature is increasing (True/False)
+merged_df["kitchen_temperature_is_increasing"] = (
+    merged_df["kitchen_temperature"].rolling(10, min_periods=3).apply(is_increasing, raw=True)
+)
+
+# Identify if kitchen humidity is high (True/False)
+merged_df["kitchen_humidity_high"] = merged_df["kitchen_humidity"].apply(lambda x: x > 40)
+
+# Identify if bathroom humidity and presence are high (True/False)
+merged_df["bathroom_humidity_high"] = merged_df["bathroom_humidity"].apply(lambda x: x > 40)
+merged_df["bathroom_presence_high"] = merged_df["bathroom_presence"].apply(lambda x: x > 10)
+
+# Calculate if bathroom humidity is increasing (True/False)
+merged_df["bathroom_humidity_is_increasing"] = (
+    merged_df["bathroom_humidity"].rolling(10, min_periods=3).apply(is_increasing, raw=True)
+)
+# Calculate if bathroom temperature is increasing (True/False)
+merged_df["bathroom_temperature_is_increasing"] = (
+    merged_df["bathroom_temperature"].rolling(10, min_periods=3).apply(is_increasing, raw=True)
+)
+
+# Identify if living room luminosity and presence are high (True/False)
+merged_df["livingroom_luminosity_high"] = merged_df["livingroom_luminosity"] > 400
+merged_df["livingroom_presence_high"] = merged_df["livingroom_presence_table"] > 8
+
+# Calculate if CO2 levels in the bedroom are increasing (True/False)
+merged_df["bedroom_CO2_is_increasing"] = (
+    merged_df["bedroom_CO2"].rolling(10, min_periods=3).apply(is_increasing, raw=True)
+)
+
+# Extract time features
+merged_df["minute"] = merged_df.index.minute
+merged_df["hour"] = merged_df.index.hour
+merged_df["day_of_week"] = merged_df.index.dayofweek  # Monday as 0
+merged_df["time_of_day"] = pd.cut(merged_df.index.hour, bins=[0, 6, 12, 18, 24], labels=[0, 1, 2, 3])
+
+# Drop rows with missing values
+merged_df.dropna(inplace=True)
+
+
+"""
+#####################
+
+Creating Temporal sequence with past data
+
+#####################
+"""
+
+# Define columns to exclude from duplication
+columns_to_exclude = ["activity", "location_int", "location"]
+
+# Create shifted versions of the DataFrame for the past rows
+df_shifted_1 = merged_df.drop(columns_to_exclude, axis=1).shift(1).add_suffix("_t1")
+df_shifted_2 = merged_df.drop(columns_to_exclude, axis=1).shift(2).add_suffix("_t2")
+df_shifted_3 = merged_df.drop(columns_to_exclude, axis=1).shift(3).add_suffix("_t3")
+df_shifted_4 = merged_df.drop(columns_to_exclude, axis=1).shift(4).add_suffix("_t4")
+df_shifted_5 = merged_df.drop(columns_to_exclude, axis=1).shift(5).add_suffix("_t5")
+
+# Concatenate past rows into current row to create combined data point
+time_series_df = pd.concat(
+    [df_shifted_5, df_shifted_4, df_shifted_3, df_shifted_2, df_shifted_1, merged_df], axis=1
+).dropna()
+
+
+"""
+#####################
+
+Daywise Data Grouping
+
+#####################
+"""
+
 """
 #####################
 
@@ -105,7 +193,7 @@ Daywise Data Grouping
 """
 
 # grouping data daywise
-GROUPED_DAYWISE = merged_df.groupby(pd.Grouper(freq="D"))
+GROUPED_DAYWISE = time_series_df.groupby(pd.Grouper(freq="D"))
 
 # getting number of rows in each group data
 groups_size = GROUPED_DAYWISE.size()
@@ -114,7 +202,7 @@ groups_size = GROUPED_DAYWISE.size()
 groups_size = groups_size[groups_size > 0]
 
 # split point at 50% -> 10 Days of data
-split_point_for_dataset = (len(groups_size) * 3) // 4
+split_point_for_dataset = (len(groups_size) * 2) // 4
 
 print(f"Total Number of Days in Dataset : {len(groups_size)} and Split Point at {split_point_for_dataset}")
 
@@ -169,6 +257,7 @@ X_test, y_test = get_feature_and_label(testing)
 # Display the shape of the unbalanced data features
 print("\n\nUnbalanced Data - Features Shape\nRows =", X_train.shape[0], " Columns =", X_train.shape[1])
 
+
 """
 #####################
 
@@ -193,16 +282,14 @@ dt_params = {
     "random_state": 42,  # Random state for reproducibility
 }
 
-# Initialize the DecisionTreeClassifier with the specified parameters
-DT = DecisionTreeClassifier(**dt_params)
-
 
 """
     ##########################################
     DECISION TREE - Balanced Data
     ##########################################
 """
-
+# Initialize the DecisionTreeClassifier with the specified parameters
+DT = DecisionTreeClassifier(**dt_params)
 
 # Train the Decision Tree classifier using the balanced dataset
 model, evaluation_results, _ = model_train_test_score(
@@ -217,33 +304,86 @@ print_metrices(evaluation_results)
 
 """
     ##########################################
-    DECISION TREE - UnBalanced Data
+    DECISION TREE - Classify Activity Directly
     ##########################################
 """
-
-# Initialize the DecisionTreeClassifier with the specified parameters
+print("\n\nMETHOD 1 - Classify Activity Directly")
+# Initialize Decision Tree Classifier with specified parameters
 DT = DecisionTreeClassifier(**dt_params)
 
+# Get top features based on importance for activity prediction
+top_features = get_top_features(X_train, y_train["activity"], threshold=0.01)
+X_train_activity_subset = X_train[top_features]
+X_test_activity_subset = X_train[top_features]
+
+# Train and evaluate the model for activity prediction
+model, evaluation_results, _ = model_train_test_score(
+    DT, X_train, X_test, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+)
+
+print("DECISION TREE - (Unbalanced) Activity METRICS")
+print_metrices(evaluation_results)
+
+
+"""
+    ##########################################
+    DECISION TREE - Location then Activity 
+    ##########################################
+"""
+print("\n\nMETHOD 2 - Classify Location then Activity")
+# Initialize Decision Tree Classifier with specified parameters
+DT = DecisionTreeClassifier(**dt_params)
+
+# Select features related to presence in different locations
 X_train_location = X_train[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
 X_test_location = X_test[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
-# Train the Decision Tree classifier using the balanced dataset
+
+# Train and evaluate the model for location prediction
 model, evaluation_results, location = model_train_test_score(
     DT, X_train_location, X_test_location, y_train["location"], y_test["location"], LOCATIONS_LIST
 )
 
-
-# Display the evaluation results for the trained Decision Tree model
 print("\n\n")
 print("DECISION TREE - (Unbalanced) LOCATION METRICS")
 print_metrices(evaluation_results)
 
 
+# Create a copy of the testing data for activity prediction and add location_int column
 X_test_activity = X_test.copy()
 X_test_activity["location_int"] = [location_int_mapping[key] for key in location]
 
+# Create a copy of the training data for activity prediction and add location_int column
 X_train_activity = X_train.copy()
 X_train_activity["location_int"] = y_train["location_int"]
 
+# Initialize Decision Tree Classifier with specified parameters
+DT = DecisionTreeClassifier(**dt_params)
+
+# Get top features based on importance for activity prediction
+top_features = get_top_features(X_train_activity, y_train["activity"], threshold=0.005)
+X_train_activity_subset = X_train_activity[top_features]
+X_test_activity_subset = X_test_activity[top_features]
+
+# Train and evaluate the model for activity prediction
+model, evaluation_results, _ = model_train_test_score(
+    DT, X_train_activity_subset, X_test_activity_subset, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+)
+
+print("DECISION TREE - (Unbalanced) Activity METRICS")
+print_metrices(evaluation_results)
+
+
+"""
+    ##########################################
+    DECISION TREE - Each Activity Separately
+    ##########################################
+"""
+print("\n\nMETHOD 3 - Classify Each Activity Separately")
+# Create copies of training and testing data
+X_train_activity = X_train.copy()
+X_test_activity = X_test.copy()
+
+# Mapping activities to locations
 activity_location_map = {
     "sleeping": "bedroom",
     "cooking": "kitchen",
@@ -252,27 +392,30 @@ activity_location_map = {
     "eating": "livingroom",
 }
 
+# Iterate over activities
 for activity in ACTIVITIES_LIST[:-1]:
-    selected_features = [col for col in X_train_activity.columns if col.startswith(activity_location_map[activity])]
 
-    selected_features.append("location_int")
-    X_train_activity = X_train_activity[selected_features]
-    X_test_activity = X_test_activity[selected_features]
-
-    # Vectorized comparison using np.where
+    # Filter labels for the current activity
     y_train_activity = y_train["activity"].apply(lambda x: x if x == activity else "unknown")
     y_test_activity = y_test["activity"].apply(lambda x: x if x == activity else "unknown")
 
-    # Initialize the DecisionTreeClassifier with the specified parameters
+    # Select features related to the room of the current activity
+    room_features = [col for col in X_train_activity.columns if col.startswith(activity_location_map[activity])]
+
+    # Get top features based on importance
+    top_features = get_top_features(X_train_activity[room_features], y_train_activity, threshold=0.05)
+    X_train_activity_subset = X_train_activity[top_features]
+    X_test_activity_subset = X_test_activity[top_features]
+
+    # Initialize Decision Tree Classifier
     DT = DecisionTreeClassifier(**dt_params)
 
-    # Train the Decision Tree classifier using the unbalanced dataset
+    # Train and evaluate the model
     model, evaluation_results, _ = model_train_test_score(
-        DT, X_train_activity, X_test_activity, y_train_activity, y_test_activity, [activity, "unknown"]
+        DT, X_train_activity_subset, X_test_activity_subset, y_train_activity, y_test_activity, [activity, "unknown"]
     )
 
-    # Display the evaluation results for the trained Decision Tree model
-    print("\n\n")
+    # Print evaluation metrics for the current activity
     print("DECISION TREE -> ", activity)
     print_metrices(evaluation_results)
 
@@ -307,21 +450,23 @@ print_metrices(evaluation_results)
     STAGE 2 - ACTIVITY
     ##########################################
 """
+X_test_rules = X_test.copy()
+X_test_rules["location_prediction"] = location_prediction
 # Initialize an empty list to store predicted activities based on rules
 activities = []
 
 # Loop through each row in the merged DataFrame to predict the activity
 for index in range(10, X_test.shape[0]):
-    activity = get_activity_label(X_test, index)
+    activity = get_activity_label(X_test_rules, index)
     activities.append(activity)
 
-y_test = y_test.iloc[10:]
+y_test_rules = y_test.iloc[10:]
 
 # Add the predicted activities to the merged DataFrame
-y_test["activity_prediction"] = activities
+y_test_rules["activity_prediction"] = activities
 
 # Calculate evaluation metrics for the predicted activities against the actual activities
-evaluation_results = calculate_metrics(y_test["activity"], y_test["activity_prediction"], ACTIVITIES_LIST)
+evaluation_results = calculate_metrics(y_test_rules["activity"], y_test_rules["activity_prediction"], ACTIVITIES_LIST)
 
 # Print the evaluation results for the activity prediction
 print("\n\n")

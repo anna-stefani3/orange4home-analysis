@@ -1,8 +1,11 @@
 import pandas as pd
 from imblearn.over_sampling import SMOTE
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import (
+    classification_report,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.tree import export_text
+from sklearn.ensemble import RandomForestClassifier
 
 
 # Function to read a CSV file into a DataFrame
@@ -326,13 +329,14 @@ def calculate_metrics(actual, predicted, labels=None):
     dict: Dictionary containing metrics.
     """
     metrics = {}
-    metrics["Accuracy"] = accuracy_score(actual, predicted)
-    average = "macro"
-    metrics["Precision"] = precision_score(actual, predicted, average=average)
-    metrics["Recall"] = recall_score(actual, predicted, average=average)
-    metrics["F1 Score"] = f1_score(actual, predicted, average=average)
-    metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=labels)
-    metrics["labels"] = labels
+    # metrics["Accuracy"] = accuracy_score(actual, predicted)
+    # average = "macro"
+    # metrics["Precision"] = precision_score(actual, predicted, average=average)
+    # metrics["Recall"] = recall_score(actual, predicted, average=average)
+    # metrics["F1 Score"] = f1_score(actual, predicted, average=average)
+    # metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=labels)
+    metrics["Classification Report"] = classification_report(actual, predicted, labels=labels)
+    # metrics["labels"] = labels
     return metrics
 
 
@@ -420,6 +424,9 @@ def print_metrices(metrics):
         if "Confusion" in metric:
             print(f"{metric} | Sequence -> {metrics.get('labels')}\n")
             print(metrics[metric])
+        elif "Classification" in metric:
+            print(f"{metric}\n")
+            print(metrics[metric])
         else:
             print(f"{metric: <12} - {metrics[metric] * 100:.2f} %")
 
@@ -453,3 +460,21 @@ def get_day_wise_group_df(grouped_daywise_data, group_ids, start_day, end_day):
 
     # Reset index and return the merged grouped DataFrame
     return grouped_df.reset_index(drop=True)
+
+
+def get_top_features(features, labels, threshold=0.05):
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
+
+    # Train the classifier
+    clf.fit(features, labels)
+
+    # Get feature importances
+    importances = clf.feature_importances_
+
+    # Select features based on the threshold
+    selected_features = features.columns[importances >= threshold]
+    print("\n\n")
+    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
+
+    return selected_features
