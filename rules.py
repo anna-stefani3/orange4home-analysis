@@ -69,6 +69,31 @@ def get_mean(values):
         return values[0]
 
 
+def is_increasing(data):
+    """
+    Calculate the slope of the linear regression line for a given list of float values.
+
+    Parameters:
+    data (list of numbers): Input data for linear regression.
+
+    Returns:
+    float: Slope of the regression line.
+    """
+
+    # Create an array of x-values (indices of the data points)
+    x = np.arange(len(data))
+
+    # Convert the input list to a numpy array for calculations
+    y = np.array(data)
+
+    # Calculate the slope and intercept of the regression line
+    # '1' specifies a linear regression model (y = mx + c)
+    slope, _ = np.polyfit(x, y, 1)
+
+    # Returns True if the slope is more than 0.2 else False
+    return slope > 0.2
+
+
 def is_cooking(humidity_history, temperature_history, noise):
     """
     Determine if the activity is cooking based on historical data.
@@ -82,14 +107,23 @@ def is_cooking(humidity_history, temperature_history, noise):
     str: "cooking" if cooking activity is detected, "unknown" otherwise.
     """
     current_humidity = humidity_history[-1]
-    is_humidity_increasing = current_humidity > get_max(humidity_history)
+    is_humidity_increasing = is_increasing(humidity_history)
     humidity_threshold = 40
     is_high_humidity = current_humidity > humidity_threshold
 
     current_temperature = temperature_history[-1]
-    is_high_temperature = current_temperature > get_max(temperature_history)
+    high_temperature_threshold = 30
+    is_high_temperature = current_temperature >= high_temperature_threshold
+    is_temperature_increasing = is_increasing(temperature_history)
 
-    if is_high_humidity or is_humidity_increasing or noise >= 2 or is_high_temperature:
+    # threshold can be played around
+    not_low_noise = noise > 0
+
+    if (
+        (is_high_humidity or is_humidity_increasing)
+        or not_low_noise
+        or (is_high_temperature or is_temperature_increasing)
+    ):
         return "cooking"
     else:
         return "unknown"
@@ -109,12 +143,20 @@ def is_sleeping(co2_history, luminosity, motion, noise):
     str: "sleeping" if sleeping activity is detected, "unknown" otherwise.
     """
     current_co2 = co2_history[-1]
-    is_co2_increasing = current_co2 > get_max(co2_history)
+    is_co2_increasing = is_increasing(co2_history)
+
+    high_co2_threshold = 600
+    is_high_co2 = current_co2 > high_co2_threshold
 
     luminosity_sleep_threshold = 50
     is_low_luminosity = luminosity <= luminosity_sleep_threshold
 
-    if is_low_luminosity and (noise <= 2 or motion <= 2 or is_co2_increasing):
+    # thresholds below needs to be changed according to dataset
+    # thresholds can be played around
+    low_noise = noise <= 2
+    low_motion = motion <= 2
+
+    if is_low_luminosity and (low_noise or low_motion) and (is_co2_increasing or is_high_co2):
         return "sleeping"
     else:
         return "unknown"
@@ -132,10 +174,13 @@ def is_bathing(humidity_history, motion):
     str: "bathing" if bathing activity is detected, "toileting" otherwise.
     """
     current_humidity = humidity_history[-1]
-    is_humidity_increasing = current_humidity > get_max(humidity_history)
+    is_humidity_increasing = current_humidity > is_increasing(humidity_history)
     humidity_threshold = 40
     is_high_humidity = current_humidity > humidity_threshold
-    if motion > 10 or is_high_humidity or is_humidity_increasing:
+
+    # threshold of 10 seems proper for bathing activity but can be played around
+    high_motion = motion > 10
+    if high_motion and (is_high_humidity or is_humidity_increasing):
         return "bathing"
     else:
         return "toileting"
@@ -152,7 +197,12 @@ def is_eating(motion, luminosity):
     Returns:
     str: "eating" if eating activity is detected, "unknown" otherwise.
     """
-    if luminosity > 400 and motion > 8:
+
+    # threshold can be played around
+    proper_luminosity = luminosity > 400
+    # threshold of 8 seems proper for eating activity but can be played around
+    high_motion = motion > 8
+    if proper_luminosity and high_motion:
         return "eating"
     else:
         return "unknown"

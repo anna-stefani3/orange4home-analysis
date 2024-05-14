@@ -3,6 +3,7 @@ Install required modules using command inside quotes
 
 `pip install pandas numpy scikit-learn imbalanced-learn`
 """
+
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 
@@ -16,7 +17,8 @@ from utils import (
     calculate_metrics,
     print_metrices,
     get_feature_and_label,
-    model_train_test_split,
+    model_train_test_score,
+    get_day_wise_group_df,
 )
 
 from rules import get_location, get_activity_label
@@ -80,9 +82,41 @@ activity_mapping = {
 # Update values in 'activity' column based on the dictionary mapping
 merged_df["activity"] = merged_df["activity"].map(lambda x: activity_mapping.get(x, "unknown"))
 
+
+"""
+#####################
+
+Daywise Data Grouping
+
+#####################
+"""
+
+# grouping data daywise
+GROUPED_DAYWISE = merged_df.groupby(pd.Grouper(freq="D"))
+
+# getting number of rows in each group data
+groups_size = GROUPED_DAYWISE.size()
+
+# filtering groups which has more than 0 rows
+groups_size = groups_size[groups_size > 0]
+
+# split point at 50% -> 10 Days of data
+split_point_for_dataset = (len(groups_size) * 3) // 4
+
+print(f"Total Number of Days in Dataset : {len(groups_size)} and Split Point at {split_point_for_dataset}")
+
+# get the group ids (For group selection)
+group_ids = list(groups_size.index)
+
+# getting the training data from GROUPED_DAYWISE dataset
+training = get_day_wise_group_df(GROUPED_DAYWISE, group_ids, start_day=0, end_day=split_point_for_dataset)
+
+# getting the testing data from GROUPED_DAYWISE dataset
+testing = get_day_wise_group_df(GROUPED_DAYWISE, group_ids, start_day=split_point_for_dataset, end_day=len(groups_size))
+
 # Display activity counts before oversampling
-print("Activity Count before Over Sampling")
-print(unique_values_with_count(merged_df, "activity"))
+print("\n\nActivity Count before Over Sampling")
+print(unique_values_with_count(training, "activity"))
 
 
 """
@@ -92,19 +126,20 @@ Balanced Data
 
 #####################
 """
+# getting resampled the training dataset
+resampled_df = training.sample(frac=1.0, random_state=42)
 # Reset index to integer-based index instead of Time-based index
-resampled_df = merged_df.sample(frac=1.0, random_state=42)
 resampled_df.reset_index(drop=True, inplace=True)
 
 # Display the shape of the final preprocessed dataset
 print("\n\nShape of final Preprocessed Dataset\nRows =", resampled_df.shape[0], " Columns =", resampled_df.shape[1])
 
 # Apply oversampling and extract features and labels
-X_resampled, y_resampled = get_feature_and_label(resampled_df)
-X_balanced_df, y_balanced_df = get_balanced_data(X_resampled, y_resampled)
+X_balanced_train, y_balanced_train = get_feature_and_label(resampled_df)
+X_balanced_train_df, y_balanced_train_df = get_balanced_data(X_balanced_train, y_balanced_train)
 
 # Display the shape of the balanced dataset after oversampling
-print("\n\nShape of Balanced Dataset\nRows =", X_balanced_df.shape[0], " Columns =", X_balanced_df.shape[1])
+print("\n\nShape of Balanced Dataset\nRows =", X_balanced_train_df.shape[0], " Columns =", X_balanced_train_df.shape[1])
 
 """
 #####################
@@ -113,11 +148,13 @@ UnBalanced Data
 
 #####################
 """
-# Extract features and labels from the merged DataFrame
-X, y = get_feature_and_label(merged_df)
+# Extract features and labels from the training DataFrame
+X_train, y_train = get_feature_and_label(training)
+
+X_test, y_test = get_feature_and_label(testing)
 
 # Display the shape of the unbalanced data features
-print("\n\nUnbalanced Data - Features Shape\nRows =", X.shape[0], " Columns =", X.shape[1])
+print("\n\nUnbalanced Data - Features Shape\nRows =", X_train.shape[0], " Columns =", X_train.shape[1])
 
 """
 #####################
@@ -144,7 +181,7 @@ dt_params = {
 }
 
 # Initialize the DecisionTreeClassifier with the specified parameters
-decision_tree = DecisionTreeClassifier(**dt_params)
+DT = DecisionTreeClassifier(**dt_params)
 
 
 """
@@ -153,7 +190,9 @@ decision_tree = DecisionTreeClassifier(**dt_params)
     ##########################################
 """
 # Train the Decision Tree classifier using the balanced dataset
-model, evaluation_results = model_train_test_split(decision_tree, X_balanced_df, y_balanced_df, ACTIVITIES_LIST)
+model, evaluation_results = model_train_test_score(
+    DT, X_balanced_train_df, X_test, y_balanced_train_df["activity"], y_test["activity"], ACTIVITIES_LIST
+)
 
 # Display the evaluation results for the trained Decision Tree model
 print("\n\n")
@@ -168,7 +207,9 @@ print_metrices(evaluation_results)
 """
 
 # Train the Decision Tree classifier using the unbalanced dataset
-model, evaluation_results = model_train_test_split(decision_tree, X, y, ACTIVITIES_LIST)
+model, evaluation_results = model_train_test_score(
+    DT, X_train, X_test, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+)
 
 # Display the evaluation results for the trained Decision Tree model
 print("\n\n")
@@ -191,22 +232,21 @@ RULE BASED SYSTEM
     ##########################################
 """
 # Apply the get_location function to each row to predict the location and forward fill any missing values
-merged_df["location_prediction"] = merged_df.apply(get_location, axis=1).ffill()
+X_test["location_prediction"] = X_test.apply(get_location, axis=1).ffill()
 
 # Define a dictionary for mapping the location names
 location_mapping = {"Bathroom": "bathroom", "Living_room": "livingroom", "Kitchen": "kitchen", "Bedroom": "bedroom"}
 
 # Map and clean the location names using the defined mapping
-merged_df["location_cleaned"] = merged_df["location"].map(lambda x: location_mapping.get(x, "unknown"))
+y_test["location_cleaned"] = y_test["location"].map(lambda x: location_mapping.get(x, "unknown"))
 
 # Calculate evaluation metrics for the predicted location against the actual cleaned location
-evaluation_results = calculate_metrics(merged_df["location_cleaned"], merged_df["location_prediction"], LOCATIONS_LIST)
+evaluation_results = calculate_metrics(y_test["location_cleaned"], X_test["location_prediction"], LOCATIONS_LIST)
 
 # Print the evaluation results for the location prediction
 print("\n\n")
 print("Rule-based - Location Classification")
 print_metrices(evaluation_results)
-
 
 """
     ##########################################
@@ -217,15 +257,17 @@ print_metrices(evaluation_results)
 activities = []
 
 # Loop through each row in the merged DataFrame to predict the activity
-for index in range(merged_df.shape[0]):
-    activity = get_activity_label(merged_df, index)
+for index in range(10, X_test.shape[0]):
+    activity = get_activity_label(X_test, index)
     activities.append(activity)
 
+y_test = y_test.iloc[10:]
+
 # Add the predicted activities to the merged DataFrame
-merged_df["activity_prediction"] = activities
+y_test["activity_prediction"] = activities
 
 # Calculate evaluation metrics for the predicted activities against the actual activities
-evaluation_results = calculate_metrics(merged_df["activity"], merged_df["activity_prediction"], ACTIVITIES_LIST)
+evaluation_results = calculate_metrics(y_test["activity"], y_test["activity_prediction"], ACTIVITIES_LIST)
 
 # Print the evaluation results for the activity prediction
 print("\n\n")

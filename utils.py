@@ -47,7 +47,7 @@ def get_activity_duration_data(df):
     start_events = activities[activities["case"] == "START"].reset_index(drop=True)
     stop_events = activities[activities["case"] == "STOP"].reset_index(drop=True)
 
-    # Calculating duration
+    # Calculating duration in seconds
     result = (stop_events["Time"] - start_events["Time"]).dt.total_seconds()
 
     # Creating new DataFrame for activity duration
@@ -60,7 +60,7 @@ def get_activity_duration_data(df):
         }
     )
 
-    # Saving to CSV
+    # Saving to CSV named "activity_duration_monitoring_data.csv"
     activity_duration_df.to_csv("activity_duration_monitoring_data.csv")
 
     return activity_duration_df
@@ -312,57 +312,6 @@ def get_balanced_data(X, y):
     return X_resampled_df, y_resampled_df
 
 
-# Function to train a model and calculate evaluation metrics
-def model_train_test_split(model, X_resampled, y_resampled, labels=None):
-    """
-    Train a model on resampled data using train-test split.
-
-    Parameters:
-    model (object): Model to train.
-    X_resampled (array-like): Resampled features.
-    y_resampled (array-like): Resampled labels.
-    labels (list): List of labels.
-
-    Returns:
-    object, dict: Trained model and evaluation metrics.
-    """
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_resampled, y_resampled["activity"], test_size=0.66, random_state=42
-    )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average="macro")
-    recall = recall_score(y_test, y_pred, average="macro")
-    f1 = f1_score(y_test, y_pred, average="macro")
-    CM = confusion_matrix(y_test, y_pred, labels=labels if labels else None)
-    evaluation_metrics = {
-        "Accuracy": accuracy,
-        "Precision": precision,
-        "Recall": recall,
-        "F1-score": f1,
-        "Confusion-Matrix": CM,
-        "labels": labels,
-    }
-    return model, evaluation_metrics
-
-
-# Function to get decision tree structure
-def get_decision_tree_structure(model, feature_names):
-    """
-    Get decision tree structure as text.
-
-    Parameters:
-    model (object): Trained decision tree model.
-    feature_names (list): List of feature names.
-
-    Returns:
-    str: Decision tree structure as text.
-    """
-    tree_structure = export_text(model, feature_names=feature_names)
-    return tree_structure
-
-
 # Function to calculate evaluation metrics
 def calculate_metrics(actual, predicted, labels=None):
     """
@@ -387,6 +336,73 @@ def calculate_metrics(actual, predicted, labels=None):
     return metrics
 
 
+# Function to train and test and then get the evaluation_metrics
+def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequence=None):
+    """
+    Train a model on training data and calculate evaluation metrics on test data.
+
+    Parameters:
+    model (object): The machine learning model to train and evaluate.
+    X_train (array-like): Features of the training data.
+    X_test (array-like): Features of the test data.
+    y_train (array-like): Labels of the training data.
+    y_test (array-like): Labels of the test data.
+    label_sequence (list, optional): Sequence of labels for confusion matrix (default is None).
+
+    Returns:
+    object, dict: Trained model and evaluation metrics.
+    """
+    # Fit the model on training data
+    model.fit(X_train, y_train)
+
+    # Predict labels for test data
+    y_pred = model.predict(X_test)
+
+    # Calculate evaluation metrics
+    evaluation_metrics = calculate_metrics(y_test, y_pred, labels=label_sequence)
+
+    return model, evaluation_metrics
+
+
+# Function to train a model and calculate evaluation metrics
+def model_train_test_split(model, X_resampled, y_resampled, labels=None):
+    """
+    Train a model on resampled data using train-test split.
+
+    Parameters:
+    model (object): Model to train.
+    X_resampled (array-like): Resampled features.
+    y_resampled (array-like): Resampled labels.
+    labels (list): List of labels.
+
+    Returns:
+    object, dict: Trained model and evaluation metrics.
+    """
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_resampled, y_resampled["activity"], test_size=0.66, random_state=42
+    )
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    evaluation_metrics = calculate_metrics(y_test, y_pred, labels=labels)
+    return model, evaluation_metrics
+
+
+# Function to get decision tree structure
+def get_decision_tree_structure(model, feature_names):
+    """
+    Get decision tree structure as text.
+
+    Parameters:
+    model (object): Trained decision tree model.
+    feature_names (list): List of feature names.
+
+    Returns:
+    str: Decision tree structure as text.
+    """
+    tree_structure = export_text(model, feature_names=feature_names)
+    return tree_structure
+
+
 # Function to print evaluation metrics
 def print_metrices(metrics):
     """
@@ -406,3 +422,34 @@ def print_metrices(metrics):
             print(metrics[metric])
         else:
             print(f"{metric: <12} - {metrics[metric] * 100:.2f} %")
+
+
+def get_day_wise_group_df(grouped_daywise_data, group_ids, start_day, end_day):
+    """
+    Concatenates DataFrames corresponding to specific group IDs from a grouped DataFrame.
+
+    Parameters:
+    grouped_daywise_data (pandas GroupBy object): Grouped DataFrame by day-wise data.
+    group_ids (list): List of group IDs to concatenate.
+    start (int): Starting index of group IDs list.
+    end (int): Ending index of group IDs list.
+
+    Returns:
+    pandas DataFrame: Merged DataFrame containing data for the specified group IDs.
+    """
+
+    # Initialize an empty list to store DataFrames for each group
+    dfs = []
+
+    # Iterate over each group ID in the specified range
+    for group_name in group_ids[start_day:end_day]:
+        # Get the DataFrame for the current group ID
+        group_df = grouped_daywise_data.get_group(group_name)
+        # Append the DataFrame to the list
+        dfs.append(group_df)
+
+    # Concatenate the DataFrames in the list
+    grouped_df = pd.concat(dfs)
+
+    # Reset index and return the merged grouped DataFrame
+    return grouped_df.reset_index(drop=True)
