@@ -19,7 +19,8 @@ from utils import (
     get_feature_and_label,
     model_train_test_score,
     get_day_wise_group_df,
-    get_top_features,
+    get_top_features_using_RFECV,
+    get_top_features_using_RFE,
 )
 
 from rules import get_location, get_activity_label, is_increasing
@@ -312,9 +313,9 @@ print("\n\nMETHOD 1 - Classify Activity Directly")
 DT = DecisionTreeClassifier(**dt_params)
 
 # Get top features based on importance for activity prediction
-top_features = get_top_features(X_train, y_train["activity"], threshold=0.01)
+top_features = get_top_features_using_RFECV(X_train, y_train["activity"])
 X_train_activity_subset = X_train[top_features]
-X_test_activity_subset = X_train[top_features]
+X_test_activity_subset = X_test[top_features]
 
 # Train and evaluate the model for activity prediction
 model, evaluation_results, _ = model_train_test_score(
@@ -360,7 +361,7 @@ X_train_activity["location_int"] = y_train["location_int"]
 DT = DecisionTreeClassifier(**dt_params)
 
 # Get top features based on importance for activity prediction
-top_features = get_top_features(X_train_activity, y_train["activity"], threshold=0.005)
+top_features = get_top_features_using_RFECV(X_train_activity, y_train["activity"])
 X_train_activity_subset = X_train_activity[top_features]
 X_test_activity_subset = X_test_activity[top_features]
 
@@ -403,7 +404,7 @@ for activity in ACTIVITIES_LIST[:-1]:
     room_features = [col for col in X_train_activity.columns if col.startswith(activity_location_map[activity])]
 
     # Get top features based on importance
-    top_features = get_top_features(X_train_activity[room_features], y_train_activity, threshold=0.05)
+    top_features = get_top_features_using_RFE(X_train_activity[room_features], y_train_activity)
     X_train_activity_subset = X_train_activity[top_features]
     X_test_activity_subset = X_test_activity[top_features]
 

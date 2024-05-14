@@ -5,6 +5,8 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.tree import export_text
+
+from sklearn.feature_selection import RFE, RFECV
 from sklearn.ensemble import RandomForestClassifier
 
 
@@ -462,7 +464,7 @@ def get_day_wise_group_df(grouped_daywise_data, group_ids, start_day, end_day):
     return grouped_df.reset_index(drop=True)
 
 
-def get_top_features(features, labels, threshold=0.05):
+def get_top_features_using_random_forest(features, labels, threshold=0.05):
     # Create a random forest classifier
     clf = RandomForestClassifier()
 
@@ -474,6 +476,42 @@ def get_top_features(features, labels, threshold=0.05):
 
     # Select features based on the threshold
     selected_features = features.columns[importances >= threshold]
+    print("\n\n")
+    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
+
+    return selected_features
+
+
+def get_top_features_using_RFE(features, labels, features_count=10):
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
+
+    # Features Selector
+    selector = RFE(clf, n_features_to_select=features_count, step=10)
+
+    # Train the selector
+    selector.fit(features, labels)
+
+    # Select features based on the threshold
+    selected_features = features.columns[selector.support_]
+    print("\n\n")
+    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
+
+    return selected_features
+
+
+def get_top_features_using_RFECV(features, labels, min_features_count=5):
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
+
+    # Features Selector
+    selector = RFECV(clf, min_features_to_select=min_features_count, step=10, n_jobs=-1)
+
+    # Train the selector
+    selector.fit(features, labels)
+
+    # Select features based on the threshold
+    selected_features = features.columns[selector.support_]
     print("\n\n")
     print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
 
