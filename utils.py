@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from imblearn.over_sampling import SMOTE
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -417,3 +417,39 @@ def get_decision_tree_structure(model, feature_names):
     tree_structure = export_text(model, feature_names=feature_names)
 
     return tree_structure
+
+
+def calculate_metrics(actual, predicted, selected_activities):
+    """
+    Calculate multiple machine learning metrics based on actual truth and predictions.
+
+    Parameters:
+        actual (array-like): Array of true labels.
+        predicted (array-like): Array of predicted labels.
+
+    Returns:
+        dict: Dictionary containing multiple metrics.
+    """
+    # Initialize an empty dictionary to store the computed metrics
+    metrics = {}
+
+    # Calculate accuracy and store it in the metrics dictionary
+    metrics["Accuracy"] = accuracy_score(actual, predicted)
+
+    # for average parameter for metrices
+    average = "macro"
+
+    # Calculate precision and store it in the metrics dictionary
+    metrics["Precision"] = precision_score(actual, predicted, average=average)
+
+    # Calculate recall and store it in the metrics dictionary
+    metrics["Recall"] = recall_score(actual, predicted, average=average)
+
+    # Calculate F1-score and store it in the metrics dictionary
+    metrics["F1 Score"] = f1_score(actual, predicted, average=average)
+
+    # Calculate confusion matrix and store it in the metrics dictionary
+    metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=selected_activities)
+
+    # Return the computed metrics
+    return metrics
