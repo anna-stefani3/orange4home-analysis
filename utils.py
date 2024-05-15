@@ -502,7 +502,7 @@ def get_top_features_using_RFE(features, labels, features_count=10):
 
 def get_top_features_using_RFECV(features, labels, min_features_count=5):
     # Create a random forest classifier
-    clf = RandomForestClassifier()
+    clf = RandomForestClassifier(random_state=42)
 
     # Features Selector
     selector = RFECV(clf, min_features_to_select=min_features_count, step=10, n_jobs=-1)
