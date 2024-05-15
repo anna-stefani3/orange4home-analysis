@@ -404,7 +404,7 @@ for activity in ACTIVITIES_LIST[:-1]:
     room_features = [col for col in X_train_activity.columns if col.startswith(activity_location_map[activity])]
 
     # Get top features based on importance
-    top_features = get_top_features_using_RFE(X_train_activity[room_features], y_train_activity)
+    top_features = get_top_features_using_RFECV(X_train_activity[room_features], y_train_activity)
     X_train_activity_subset = X_train_activity[top_features]
     X_test_activity_subset = X_test_activity[top_features]
 
