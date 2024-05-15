@@ -319,7 +319,7 @@ X_test_activity_subset = X_test[top_features]
 
 # Train and evaluate the model for activity prediction
 model, evaluation_results, _ = model_train_test_score(
-    DT, X_train, X_test, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+    DT, X_train_activity_subset, X_test_activity_subset, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
 )
 
 print("DECISION TREE - (Unbalanced) Activity METRICS")
