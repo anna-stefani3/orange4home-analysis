@@ -223,18 +223,18 @@ def apply_preprocessing(filename=BASE_PATH):
     validation = apply_location_and_activity_mapping(validation)
     testing = apply_location_and_activity_mapping(testing)
 
-    response = input("Enter 1 to Add Literature Based Features\n")
+    response = input("Press 1 to Add Literature Based Features\n")
     if response == "1":
         training = add_literature_based_features(training)
         validation = add_literature_based_features(validation)
         testing = add_literature_based_features(testing)
-    response = input("Enter 1 to Add Time Based Features\n")
+    response = input("Press 1 to Add Time Based Features\n")
     if response == "1":
         training = add_time_based_features(training)
         validation = add_time_based_features(validation)
         testing = add_time_based_features(testing)
 
-    response = input("Enter 1 to Add Temporal Sequence\n")
+    response = input("Press 1 to Add Temporal Sequence\n")
     if response == "1":
         training = get_temporal_sequence_data(training)
         validation = get_temporal_sequence_data(validation)
