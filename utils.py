@@ -1,28 +1,7 @@
 import pandas as pd
 from imblearn.over_sampling import SMOTE
-from sklearn.metrics import (
-    classification_report,
-)
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 from sklearn.tree import export_text
-
-from sklearn.feature_selection import RFE, RFECV
-from sklearn.ensemble import RandomForestClassifier
-
-
-# Function to read a CSV file into a DataFrame
-def read_csv_to_dataframe(csv_file):
-    """
-    Read a CSV file into a DataFrame.
-
-    Parameters:
-    csv_file (str): File path or name of the CSV file.
-
-    Returns:
-    pandas.DataFrame: DataFrame containing the CSV data.
-    """
-    dataframe = pd.read_csv(csv_file)
-    return dataframe
 
 
 # Function to extract activity duration data
@@ -289,8 +268,9 @@ def get_feature_and_label(df, labels=["location", "location_int", "activity"]):
     Returns:
     pandas.DataFrame, pandas.DataFrame: Features and labels.
     """
-    X = df.drop(columns=labels)
-    y = df[labels]
+    existing_labels = [label for label in labels if label in df.columns]
+    X = df.drop(columns=existing_labels)
+    y = df[existing_labels]
     return X, y
 
 
@@ -331,14 +311,7 @@ def calculate_metrics(actual, predicted, labels=None):
     dict: Dictionary containing metrics.
     """
     metrics = {}
-    # metrics["Accuracy"] = accuracy_score(actual, predicted)
-    # average = "macro"
-    # metrics["Precision"] = precision_score(actual, predicted, average=average)
-    # metrics["Recall"] = recall_score(actual, predicted, average=average)
-    # metrics["F1 Score"] = f1_score(actual, predicted, average=average)
-    # metrics["Confusion Matrix"] = confusion_matrix(actual, predicted, labels=labels)
     metrics["Classification Report"] = classification_report(actual, predicted, labels=labels)
-    # metrics["labels"] = labels
     return metrics
 
 
@@ -368,29 +341,6 @@ def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequen
     evaluation_metrics = calculate_metrics(y_test, y_pred, labels=label_sequence)
 
     return model, evaluation_metrics, y_pred
-
-
-# Function to train a model and calculate evaluation metrics
-def model_train_test_split(model, X_resampled, y_resampled, labels=None):
-    """
-    Train a model on resampled data using train-test split.
-
-    Parameters:
-    model (object): Model to train.
-    X_resampled (array-like): Resampled features.
-    y_resampled (array-like): Resampled labels.
-    labels (list): List of labels.
-
-    Returns:
-    object, dict: Trained model and evaluation metrics.
-    """
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_resampled, y_resampled["activity"], test_size=0.66, random_state=42
-    )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    evaluation_metrics = calculate_metrics(y_test, y_pred, labels=labels)
-    return model, evaluation_metrics
 
 
 # Function to get decision tree structure
@@ -461,58 +411,13 @@ def get_day_wise_group_df(grouped_daywise_data, group_ids, start_day, end_day):
     grouped_df = pd.concat(dfs)
 
     # Reset index and return the merged grouped DataFrame
-    return grouped_df.reset_index(drop=True)
+    return grouped_df
 
 
-def get_top_features_using_random_forest(features, labels, threshold=0.05):
-    # Create a random forest classifier
-    clf = RandomForestClassifier()
+def validate_experiment(func):
+    def wrapper(*args, **kwargs):
+        response = input(f"Press 1 to {func.__name__}\n")
+        if response == "1":
+            func(*args, **kwargs)
 
-    # Train the classifier
-    clf.fit(features, labels)
-
-    # Get feature importances
-    importances = clf.feature_importances_
-
-    # Select features based on the threshold
-    selected_features = features.columns[importances >= threshold]
-    print("\n\n")
-    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
-
-    return selected_features
-
-
-def get_top_features_using_RFE(features, labels, features_count=10):
-    # Create a random forest classifier
-    clf = RandomForestClassifier()
-
-    # Features Selector
-    selector = RFE(clf, n_features_to_select=features_count, step=10)
-
-    # Train the selector
-    selector.fit(features, labels)
-
-    # Select features based on the threshold
-    selected_features = features.columns[selector.support_]
-    print("\n\n")
-    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
-
-    return selected_features
-
-
-def get_top_features_using_RFECV(features, labels, min_features_count=5):
-    # Create a random forest classifier
-    clf = RandomForestClassifier(random_state=42)
-
-    # Features Selector
-    selector = RFECV(clf, min_features_to_select=min_features_count, step=10, n_jobs=-1)
-
-    # Train the selector
-    selector.fit(features, labels)
-
-    # Select features based on the threshold
-    selected_features = features.columns[selector.support_]
-    print("\n\n")
-    print(f"Features Count: {len(features.columns)} | Selected Features: {len(selected_features)}")
-
-    return selected_features
+    return wrapper
