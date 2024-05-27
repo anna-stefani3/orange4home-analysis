@@ -228,8 +228,6 @@ def apply_preprocessing(filename=BASE_PATH):
         training = add_literature_based_features(training)
         validation = add_literature_based_features(validation)
         testing = add_literature_based_features(testing)
-    response = input("Press 1 to Add Time Based Features\n")
-    if response == "1":
         training = add_time_based_features(training)
         validation = add_time_based_features(validation)
         testing = add_time_based_features(testing)
