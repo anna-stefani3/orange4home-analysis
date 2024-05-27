@@ -56,7 +56,7 @@ def get_top_features_using_RFECV(features, labels, min_features_count=5):
 
 
 @validate_experiment
-def apply_balanced_dt_method(X_train, X_test, y_train, y_test):
+def apply_decision_tree_on_balanced_data(X_train, X_test, y_train, y_test):
     X_train, y_train = get_balanced_training_dataset(X_train, y_train)
 
     # Initialize the DecisionTreeClassifier with the specified parameters
@@ -149,7 +149,7 @@ def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_tr
 
 
 @validate_experiment
-def apply_separate_decision_tree_for_each_activity(X_train, X_test, y_train, y_test):
+def apply_multiple_binary_decision_tree_classifiers_per_activity(X_train, X_test, y_train, y_test):
     print("\n\nMETHOD 3 - Classify Each Activity Separately")
     # Create copies of training and testing data
     X_train_activity = X_train.copy()
@@ -189,7 +189,7 @@ def apply_separate_decision_tree_for_each_activity(X_train, X_test, y_train, y_t
 
 
 @validate_experiment
-def apply_rule_based_system(X_test, y_test):
+def apply_rule_based_system_to_classify_location_then_activity(X_test, y_test):
     """
     ##########################################
     STAGE 1 - LOCATION

@@ -165,7 +165,6 @@ Here's an example command sequence to run the preprocessing and respond to promp
 python main.py
 Press 1 to Read from saved Preprocessed CSV File
 Press 1 to Add Literature Based Features
-Press 1 to Add Time Based Features
 Press 1 to Add Temporal Sequence
 ```
 
@@ -174,11 +173,11 @@ Press 1 to Add Temporal Sequence
     Now for each experiement (Method) user will be asked to press "1" and then press "Enter" to excute that method else simply press "Enter" to Skip that method.
 
 ```bash
-Press 1 to apply_balanced_dt_method
+Press 1 to apply_decision_tree_on_balanced_data
 Press 1 to apply_decision_tree_to_classify_activity_directly
 Press 1 to apply_decision_tree_to_classify_location_then_activity
-Press 1 to apply_separate_decision_tree_for_each_activity
-Press 1 to apply_rule_based_system
+Press 1 to apply_multiple_binary_decision_tree_classifiers_per_activity
+Press 1 to apply_rule_based_system_to_classify_location_then_activity
 ```
 
 
