@@ -175,8 +175,23 @@ Press 1 to Add Temporal Sequence
 
 ```bash
 Press 1 to apply_balanced_dt_method
-Press 1 to apply_method_1
-Press 1 to apply_method_2
-Press 1 to apply_method_3
+Press 1 to apply_decision_tree_to_classify_activity_directly
+Press 1 to apply_decision_tree_to_classify_location_then_activity
+Press 1 to apply_separate_decision_tree_for_each_activity
 Press 1 to apply_rule_based_system
 ```
+
+
+## Acknowledgments
+
+### Datasets
+
+- **Orange4Home Dataset**
+  - **Description**: 
+  A dataset of routine daily activities in an instrumented home.
+
+  - **Citation**: 
+  Julien Cumin, Grégoire Lefebvre, Fano Ramparany, and James L. Crowley. 
+  "A Dataset of Routine Daily Activities in an Instrumented Home". 
+  In 11th International Conference on Ubiquitous Computing and Ambient Intelligence (UCAmI), 2017. 
+  [Link to publication](https://hal.science/hal-01639673)

@@ -74,7 +74,7 @@ def apply_balanced_dt_method(X_train, X_test, y_train, y_test):
 
 
 @validate_experiment
-def apply_method_1(X_train, X_test, y_train, y_test):
+def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, y_test):
     """
     ##########################################
     DECISION TREE - Classify Activity Directly
@@ -99,7 +99,7 @@ def apply_method_1(X_train, X_test, y_train, y_test):
 
 
 @validate_experiment
-def apply_method_2(X_train, X_test, y_train, y_test):
+def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
     """
     ##########################################
     DECISION TREE - Location then Activity
@@ -149,7 +149,7 @@ def apply_method_2(X_train, X_test, y_train, y_test):
 
 
 @validate_experiment
-def apply_method_3(X_train, X_test, y_train, y_test):
+def apply_separate_decision_tree_for_each_activity(X_train, X_test, y_train, y_test):
     print("\n\nMETHOD 3 - Classify Each Activity Separately")
     # Create copies of training and testing data
     X_train_activity = X_train.copy()
