@@ -62,9 +62,14 @@ def apply_decision_tree_on_balanced_data(X_train, X_test, y_train, y_test):
     # Initialize the DecisionTreeClassifier with the specified parameters
     DT = DecisionTreeClassifier(**DT_PARAMS)
 
+    # Get top features based on importance for activity prediction
+    top_features = get_top_features_using_RFECV(X_train, y_train["activity"])
+    X_train_activity_subset = X_train[top_features]
+    X_test_activity_subset = X_test[top_features]
+
     # Train the Decision Tree classifier using the balanced dataset
     _, evaluation_results, _ = model_train_test_score(
-        DT, X_train, X_test, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+        DT, X_train_activity_subset, X_test_activity_subset, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
     )
 
     # Display the evaluation results for the trained Decision Tree model
