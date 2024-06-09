@@ -7,16 +7,38 @@ from utils import model_train_test_score, print_metrices, calculate_metrics, val
 from rules import get_location, get_activity_label
 from preprocessing import get_balanced_training_dataset
 
+from sklearn import svm
+from sklearn_crfsuite import CRF
+
+from hmmlearn import hmm
+
+# fmt: off
+# Define parameters for the SVM
+SVM_PARAMS = {
+    "C": 1.0,                # Regularization parameter
+    "kernel": "rbf",         # RBF kernel (Gaussian Kernel)
+    "gamma": "scale"         # Kernel coefficient for "rbf", "poly" and "sigmoid"
+}
+
+
+CRF_PARAMS = {
+    "algorithm":"lbfgs",
+    "c1":0.1,
+    "c2":0.1,
+    "max_iterations":100,
+    "all_possible_transitions":False
+}
 
 # Define parameters for the DecisionTreeClassifier
 DT_PARAMS = {
-    "criterion": "gini",  # Splitting criterion: 'gini' or 'entropy'
-    "max_depth": 5,  # Maximum depth of the decision tree
-    "min_samples_split": 2,  # Minimum samples required to split an internal node
-    "min_samples_leaf": 1,  # Minimum samples required to be at a leaf node
-    "max_features": "sqrt",  # Number of features to consider for the best split
-    "random_state": 42,  # Random state for reproducibility
+    "criterion": "gini",        # Splitting criterion: "gini" or "entropy"
+    "max_depth": 5,             # Maximum depth of the decision tree
+    "min_samples_split": 2,     # Minimum samples required to split an internal node
+    "min_samples_leaf": 1,      # Minimum samples required to be at a leaf node
+    "max_features": "sqrt",     # Number of features to consider for the best split
+    "random_state": 42,         # Random state for reproducibility
 }
+# fmt: on
 
 
 def get_top_features_using_random_forest(features, labels, threshold=0.05):
@@ -78,16 +100,13 @@ def apply_decision_tree_on_balanced_data(X_train, X_test, y_train, y_test):
     print_metrices(evaluation_results)
 
 
-@validate_experiment
-def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+def classify_activity_directly(model, X_train, X_test, y_train, y_test, mode="statistical"):
     """
     ##########################################
-    DECISION TREE - Classify Activity Directly
+    Classify Activity Directly
     ##########################################
     """
-    print("\n\nMETHOD 1 - Classify Activity Directly")
-    # Initialize Decision Tree Classifier with specified parameters
-    DT = DecisionTreeClassifier(**DT_PARAMS)
+    print("\n\nClassify Activity Directly")
 
     # Get top features based on importance for activity prediction
     top_features = get_top_features_using_RFECV(X_train, y_train["activity"])
@@ -96,23 +115,60 @@ def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, 
 
     # Train and evaluate the model for activity prediction
     _, evaluation_results, _ = model_train_test_score(
-        DT, X_train_activity_subset, X_test_activity_subset, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+        model,
+        X_train_activity_subset,
+        X_test_activity_subset,
+        y_train["activity"],
+        y_test["activity"],
+        ACTIVITIES_LIST,
+        mode=mode,
     )
 
-    print("DT METHOD 1 - Activity Classification Results")
+    print("Activity Classification Results")
     print_metrices(evaluation_results)
 
 
 @validate_experiment
-def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
-    """
-    ##########################################
-    DECISION TREE - Location then Activity
-    ##########################################
-    """
-    print("\n\nMETHOD 2 - Classify Location then Activity")
-    # Initialize Decision Tree Classifier with specified parameters
+def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nDECISION TREE - Classify Each Activity Separately")
+    # Initialize Decision Tree Classifier
     DT = DecisionTreeClassifier(**DT_PARAMS)
+    classify_activity_directly(DT, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_svm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nSVM - Classify Each Activity Separately")
+    # Initialize the SVM classifier with the Gaussian Kernel
+    SVM = svm.SVC(**SVM_PARAMS)
+    classify_activity_directly(SVM, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_crf_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nCRF - Classify Each Activity Separately")
+    # Initialize CRF Classifier
+    CRF_CLASSIFIER = CRF(**CRF_PARAMS)
+    classify_activity_directly(CRF_CLASSIFIER, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_supervised_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nHMM - Classify Activity Directly")
+    # Initialize HMM Classifier
+    HMM = hmm.GaussianHMM(
+        n_components=y_train["activity"].nunique(), covariance_type="full", n_iter=100, random_state=42
+    )
+    classify_activity_directly(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
+
+
+def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mode="statistical"):
+    """
+    ##########################################
+    Location then Activity
+    ##########################################
+    """
+    print("\n\nClassify Location then Activity")
 
     # Select features related to presence in different locations
     X_train_location = X_train[
@@ -120,12 +176,33 @@ def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_tr
     ]
     X_test_location = X_test[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
 
-    # Train and evaluate the model for location prediction
-    _, evaluation_results, location = model_train_test_score(
-        DT, X_train_location, X_test_location, y_train["location"], y_test["location"], LOCATIONS_LIST
-    )
+    if mode == "probabilistic":
+        HMM_LOCATION = hmm.GaussianHMM(
+            n_components=int(y_train["location"].nunique()), covariance_type="full", n_iter=100, random_state=42
+        )
+        # Train and evaluate the model for location prediction
+        _, evaluation_results, location = model_train_test_score(
+            HMM_LOCATION,
+            X_train_location,
+            X_test_location,
+            y_train["location"],
+            y_test["location"],
+            LOCATIONS_LIST,
+            mode=mode,
+        )
+    else:
+        # Train and evaluate the model for location prediction
+        _, evaluation_results, location = model_train_test_score(
+            model,
+            X_train_location,
+            X_test_location,
+            y_train["location"],
+            y_test["location"],
+            LOCATIONS_LIST,
+            mode=mode,
+        )
 
-    print("DT METHOD 2 - Location Classification Results")
+    print("Location Classification Results")
     print_metrices(evaluation_results)
 
     # Create a copy of the testing data for activity prediction and add location_int column
@@ -136,9 +213,6 @@ def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_tr
     X_train_activity = X_train.copy()
     X_train_activity["location_int"] = y_train["location_int"]
 
-    # Initialize Decision Tree Classifier with specified parameters
-    DT = DecisionTreeClassifier(**DT_PARAMS)
-
     # Get top features based on importance for activity prediction
     top_features = get_top_features_using_RFECV(X_train_activity, y_train["activity"])
     X_train_activity_subset = X_train_activity[top_features]
@@ -146,16 +220,54 @@ def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_tr
 
     # Train and evaluate the model for activity prediction
     _, evaluation_results, _ = model_train_test_score(
-        DT, X_train_activity_subset, X_test_activity_subset, y_train["activity"], y_test["activity"], ACTIVITIES_LIST
+        model,
+        X_train_activity_subset,
+        X_test_activity_subset,
+        y_train["activity"],
+        y_test["activity"],
+        ACTIVITIES_LIST,
+        mode=mode,
     )
 
-    print("DT METHOD 2 - Activity Classification Results")
+    print("Activity Classification Results")
     print_metrices(evaluation_results)
 
 
 @validate_experiment
-def apply_multiple_binary_decision_tree_classifiers_per_activity(X_train, X_test, y_train, y_test):
-    print("\n\nMETHOD 3 - Classify Each Activity Separately")
+def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nDECISION TREE - Classify Each Activity Separately")
+    # Initialize Decision Tree Classifier
+    DT = DecisionTreeClassifier(**DT_PARAMS)
+    classify_location_then_activity(DT, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_svm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nSVM - Classify Each Activity Separately")
+    # Initialize the SVM classifier with the Gaussian Kernel
+    SVM = svm.SVC(**SVM_PARAMS)
+    classify_location_then_activity(SVM, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nCRF - Classify Each Activity Separately")
+    # Initialize CRF Classifier
+    CRF_CLASSIFIER = CRF(**CRF_PARAMS)
+    classify_location_then_activity(CRF_CLASSIFIER, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_supercised_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nHMM - Classify Each Activity Separately")
+    # Initialize HMM Classifier
+    HMM = hmm.GaussianHMM(
+        n_components=int(y_train["activity"].nunique()), covariance_type="full", n_iter=100, random_state=42
+    )
+    classify_location_then_activity(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
+
+
+def apply_multiple_binary_classifiers_per_activity(model, X_train, X_test, y_train, y_test, mode="statistical"):
     # Create copies of training and testing data
     X_train_activity = X_train.copy()
     X_test_activity = X_test.copy()
@@ -175,22 +287,54 @@ def apply_multiple_binary_decision_tree_classifiers_per_activity(X_train, X_test
         X_train_activity_subset = X_train_activity[top_features]
         X_test_activity_subset = X_test_activity[top_features]
 
-        # Initialize Decision Tree Classifier
-        DT = DecisionTreeClassifier(**DT_PARAMS)
-
         # Train and evaluate the model
         _, evaluation_results, _ = model_train_test_score(
-            DT,
+            model,
             X_train_activity_subset,
             X_test_activity_subset,
             y_train_activity,
             y_test_activity,
             [activity, "unknown"],
+            mode=mode,
         )
 
         # Print evaluation metrics for the current activity
-        print("DT METHOD 3 -> ", activity)
+        print("Classification Report :", activity)
         print_metrices(evaluation_results)
+
+
+@validate_experiment
+def apply_multiple_binary_decision_tree_classifiers_per_activity(X_train, X_test, y_train, y_test):
+    print("\n\nDECISION TREE - Classify Each Activity Separately")
+    # Initialize Decision Tree Classifier
+    DT = DecisionTreeClassifier(**DT_PARAMS)
+    apply_multiple_binary_classifiers_per_activity(DT, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_multiple_binary_svm_classifiers_per_activity(X_train, X_test, y_train, y_test):
+    print("\n\nSVM - Classify Each Activity Separately")
+    # Initialize the SVM classifier with the Gaussian Kernel
+    SVM = svm.SVC(**SVM_PARAMS)
+    apply_multiple_binary_classifiers_per_activity(SVM, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_multiple_binary_crf_classifiers_per_activity(X_train, X_test, y_train, y_test):
+    print("\n\nCRF - Classify Each Activity Separately")
+    # Initialize CRF Classifier
+    CRF_CLASSIFIER = CRF(**CRF_PARAMS)
+    apply_multiple_binary_classifiers_per_activity(CRF_CLASSIFIER, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
+def apply_multiple_binary_supervised_hmm_classifiers_per_activity(X_train, X_test, y_train, y_test):
+    print("\n\nHMM - Classify Each Activity Separately")
+    # Initialize HMM Classifier
+    HMM = hmm.GaussianHMM(
+        n_components=y_train["activity"].nunique(), covariance_type="full", n_iter=100, random_state=42
+    )
+    apply_multiple_binary_classifiers_per_activity(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
 @validate_experiment

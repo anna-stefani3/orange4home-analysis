@@ -76,7 +76,7 @@ Ensure you have the following installed:
 3. Install the required packages:
 
     ```bash
-    pip install pandas numpy scikit-learn imbalanced-learn
+    pip install pandas numpy scikit-learn sklearn-crfsuite imbalanced-learn hmmlearn
     ```
 
 ## Usage

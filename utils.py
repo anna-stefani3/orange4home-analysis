@@ -3,6 +3,8 @@ from imblearn.over_sampling import SMOTE
 from sklearn.metrics import classification_report
 from sklearn.tree import export_text
 
+from hmm import hmm_get_activity_classification
+
 
 # Function to extract activity duration data
 def get_activity_duration_data(df):
@@ -316,7 +318,7 @@ def calculate_metrics(actual, predicted, labels=None):
 
 
 # Function to train and test and then get the evaluation_metrics
-def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequence=None):
+def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequence=None, mode="statistical"):
     """
     Train a model on training data and calculate evaluation metrics on test data.
 
@@ -327,15 +329,19 @@ def model_train_test_score(model, X_train, X_test, y_train, y_test, label_sequen
     y_train (array-like): Labels of the training data.
     y_test (array-like): Labels of the test data.
     label_sequence (list, optional): Sequence of labels for confusion matrix (default is None).
+    mode (str): either "probabilistic" or "statistical"
 
     Returns:
     object, dict: Trained model and evaluation metrics.
     """
-    # Fit the model on training data
-    model.fit(X_train, y_train)
+    if mode == "probabilistic":
+        y_pred = hmm_get_activity_classification(model, X_train, X_test, y_train, y_test)
+    else:
+        # Fit the model on training data
+        model.fit(X_train, y_train)
 
-    # Predict labels for test data
-    y_pred = model.predict(X_test)
+        # Predict labels for test data
+        y_pred = model.predict(X_test)
 
     # Calculate evaluation metrics
     evaluation_metrics = calculate_metrics(y_test, y_pred, labels=label_sequence)
