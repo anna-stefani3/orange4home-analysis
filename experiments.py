@@ -153,7 +153,7 @@ def apply_crf_to_classify_activity_directly(X_train, X_test, y_train, y_test):
 
 
 @validate_experiment
-def apply_supervised_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+def apply_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Activity Directly")
     # Initialize HMM Classifier
     HMM = hmm.GaussianHMM(
@@ -258,7 +258,7 @@ def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_tes
 
 
 @validate_experiment
-def apply_supercised_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+def apply_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Each Activity Separately")
     # Initialize HMM Classifier
     HMM = hmm.GaussianHMM(
