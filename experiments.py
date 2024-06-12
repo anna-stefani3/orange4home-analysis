@@ -38,6 +38,14 @@ DT_PARAMS = {
     "max_features": "sqrt",     # Number of features to consider for the best split
     "random_state": 42,         # Random state for reproducibility
 }
+
+HMM = hmm.GaussianHMM(
+    n_components=len(ACTIVITIES_LIST) * 10,
+    covariance_type="tied",
+    n_iter=100,
+    random_state=11,
+    init_params="",
+)
 # fmt: on
 
 
@@ -155,10 +163,6 @@ def apply_crf_to_classify_activity_directly(X_train, X_test, y_train, y_test):
 @validate_experiment
 def apply_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Activity Directly")
-    # Initialize HMM Classifier
-    HMM = hmm.GaussianHMM(
-        n_components=y_train["activity"].nunique(), covariance_type="full", n_iter=100, random_state=42
-    )
     classify_activity_directly(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
@@ -260,10 +264,6 @@ def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_tes
 @validate_experiment
 def apply_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Each Activity Separately")
-    # Initialize HMM Classifier
-    HMM = hmm.GaussianHMM(
-        n_components=int(y_train["activity"].nunique()), covariance_type="full", n_iter=100, random_state=42
-    )
     classify_location_then_activity(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
