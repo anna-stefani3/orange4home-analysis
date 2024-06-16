@@ -1,3 +1,5 @@
+import copy
+
 from sklearn.feature_selection import RFECV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -39,13 +41,21 @@ DT_PARAMS = {
     "random_state": 42,         # Random state for reproducibility
 }
 
-HMM = hmm.GaussianHMM(
-    n_components=len(ACTIVITIES_LIST) * 10,
-    covariance_type="tied",
-    n_iter=100,
-    random_state=11,
-    init_params="",
-)
+location_components = len(LOCATIONS_LIST)
+activity_components = len(ACTIVITIES_LIST) * 10
+
+# HMM = hmm.GaussianHMM(
+#     n_components=activity_components,
+#     covariance_type="tied",
+#     n_iter=100,
+#     random_state=11
+# )
+
+# GMMHMM = hmm.GMMHMM(
+#     n_components=len(ACTIVITIES_LIST),
+#     covariance_type="spherical",
+#     random_state=11,
+# )
 # fmt: on
 
 
@@ -121,6 +131,9 @@ def classify_activity_directly(model, X_train, X_test, y_train, y_test, mode="st
     X_train_activity_subset = X_train[top_features]
     X_test_activity_subset = X_test[top_features]
 
+    if mode == "probabilistic":
+        model.n_components = activity_components
+
     # Train and evaluate the model for activity prediction
     _, evaluation_results, _ = model_train_test_score(
         model,
@@ -163,7 +176,19 @@ def apply_crf_to_classify_activity_directly(X_train, X_test, y_train, y_test):
 @validate_experiment
 def apply_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Activity Directly")
+    HMM = hmm.GaussianHMM(n_components=activity_components, covariance_type="tied", n_iter=100, random_state=11)
     classify_activity_directly(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
+
+
+@validate_experiment
+def apply_gmmhmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nGMMHMM - Classify Activity Directly")
+    GMMHMM = hmm.GMMHMM(
+        n_components=len(ACTIVITIES_LIST),
+        random_state=11,
+        init_params="",
+    )
+    classify_activity_directly(GMMHMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
 def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mode="statistical"):
@@ -180,31 +205,19 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
     ]
     X_test_location = X_test[["bedroom_presence", "kitchen_presence", "bathroom_presence", "livingroom_presence_table"]]
 
+    location_model = copy.deepcopy(model)
     if mode == "probabilistic":
-        HMM_LOCATION = hmm.GaussianHMM(
-            n_components=int(y_train["location"].nunique()), covariance_type="full", n_iter=100, random_state=42
-        )
-        # Train and evaluate the model for location prediction
-        _, evaluation_results, location = model_train_test_score(
-            HMM_LOCATION,
-            X_train_location,
-            X_test_location,
-            y_train["location"],
-            y_test["location"],
-            LOCATIONS_LIST,
-            mode=mode,
-        )
-    else:
-        # Train and evaluate the model for location prediction
-        _, evaluation_results, location = model_train_test_score(
-            model,
-            X_train_location,
-            X_test_location,
-            y_train["location"],
-            y_test["location"],
-            LOCATIONS_LIST,
-            mode=mode,
-        )
+        location_model.n_components = location_components
+    # Train and evaluate the model for location prediction
+    _, evaluation_results, location = model_train_test_score(
+        location_model,
+        X_train_location,
+        X_test_location,
+        y_train["location"],
+        y_test["location"],
+        LOCATIONS_LIST,
+        mode=mode,
+    )
 
     print("Location Classification Results")
     print_metrices(evaluation_results)
@@ -222,9 +235,13 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
     X_train_activity_subset = X_train_activity[top_features]
     X_test_activity_subset = X_test_activity[top_features]
 
+    activity_model = copy.deepcopy(model)
+    if mode == "probabilistic":
+        activity_model.n_components = activity_components
+
     # Train and evaluate the model for activity prediction
     _, evaluation_results, _ = model_train_test_score(
-        model,
+        activity_model,
         X_train_activity_subset,
         X_test_activity_subset,
         y_train["activity"],
@@ -264,7 +281,19 @@ def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_tes
 @validate_experiment
 def apply_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
     print("\n\nHMM - Classify Each Activity Separately")
+    HMM = hmm.GaussianHMM(n_components=activity_components, covariance_type="tied", n_iter=100, random_state=11)
     classify_location_then_activity(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
+
+
+@validate_experiment
+def apply_gmmhmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nGMMHMM - Classify Each Activity Separately")
+    GMMHMM = hmm.GMMHMM(
+        n_components=len(ACTIVITIES_LIST),
+        random_state=11,
+        init_params="",
+    )
+    classify_location_then_activity(GMMHMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
 def apply_multiple_binary_classifiers_per_activity(model, X_train, X_test, y_train, y_test, mode="statistical"):

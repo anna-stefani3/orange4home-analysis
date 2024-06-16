@@ -129,13 +129,15 @@ def hmm_get_activity_classification(model, X_train, X_test, y_train, y_test):
     # ) = initialize_hmm_probabilities(y_train)
 
     # print(state_to_observation)
-    # model.startprob_ = prior_probabilities
+    model.startprob_ = np.ones(model.n_components) / model.n_components
     # model.transmat_ = transition_probabilities
     # model.emissionprob_ = emission_probabilities
-    # lengths_train = y_train.value_counts().to_list()
+    lengths_train = y_train.value_counts().to_list()
 
-    model.fit(X_train.to_numpy())
-    states = model.predict(X_train.to_numpy())
+    X_train_numpy = X_train.to_numpy()
+    print(X_train_numpy.shape)
+    model.fit(X_train_numpy)
+    states = model.predict(X_train_numpy)
     mapping = get_hmm_state_mapping(np.array(states), y_train.to_numpy())
 
     # Function to predict activities given new sensor event sequences
