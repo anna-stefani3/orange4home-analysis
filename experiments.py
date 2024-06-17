@@ -15,9 +15,9 @@ from hmmlearn import hmm
 # fmt: off
 # Define parameters for the SVM
 SVM_PARAMS = {
-    "C": 1.0,                # Regularization parameter
-    "kernel": "rbf",         # RBF kernel (Gaussian Kernel)
-    "gamma": "scale"         # Kernel coefficient for "rbf", "poly" and "sigmoid"
+    "C": 1.0,                   # Regularization parameter
+    "kernel": "linear",         # RBF kernel (Gaussian Kernel)
+    "gamma": "auto"             # Kernel coefficient for "rbf", "poly" and "sigmoid"
 }
 
 
