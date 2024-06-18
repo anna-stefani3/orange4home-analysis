@@ -40,11 +40,11 @@ DT_PARAMS = {
 }
 
 HMM = hmm.GaussianHMM(
-    n_components=len(ACTIVITIES_LIST) * 10,
-    covariance_type="tied",
+    n_components=len(ACTIVITIES_LIST),
+    covariance_type="full",
     n_iter=100,
     random_state=11,
-    init_params="",
+    init_params="mc",
 )
 # fmt: on
 
@@ -116,10 +116,14 @@ def classify_activity_directly(model, X_train, X_test, y_train, y_test, mode="st
     """
     print("\n\nClassify Activity Directly")
 
-    # Get top features based on importance for activity prediction
-    top_features = get_top_features_using_RFECV(X_train, y_train["activity"])
-    X_train_activity_subset = X_train[top_features]
-    X_test_activity_subset = X_test[top_features]
+    if mode == "statistical":
+        # Get top features based on importance for activity prediction
+        top_features = get_top_features_using_RFECV(X_train, y_train["activity"])
+        X_train_activity_subset = X_train[top_features]
+        X_test_activity_subset = X_test[top_features]
+    elif mode == "probabilistic":
+        X_train_activity_subset = X_train
+        X_test_activity_subset = X_test
 
     # Train and evaluate the model for activity prediction
     _, evaluation_results, _ = model_train_test_score(

@@ -1,91 +1,98 @@
 import numpy as np
 import pandas as pd
 
-# from collections import defaultdict, Counter
-# from common_variables import ACTIVITIES_LIST
+from collections import defaultdict, Counter
+from common_variables import ACTIVITIES_LIST
 
 
-# def calculate_prior_probabilities(series, observation_to_state):
-#     # Convert observations to corresponding states using observation_to_state dict
-#     series_states = np.array([observation_to_state[obs] for obs in series])
-#     num_states = len(np.unique(series_states))
-#     prior_probabilities = np.zeros(num_states)
+def calculate_prior_probabilities(activity_series):
+    # Get unique activities
+    unique_activities = activity_series.unique()
 
-#     # Count occurrences of each state
-#     for state in series_states:
-#         prior_probabilities[state] += 1
+    # Calculate the count of the first activity in each sequence
+    activity_counts = activity_series.value_counts().reindex(unique_activities, fill_value=0)
 
-#     # Normalize to get probabilities
-#     prior_probabilities /= len(series_states)
+    # Apply Laplace smoothing
+    alpha = 1
+    total_count = activity_counts.sum() + alpha * len(unique_activities)
 
-#     return prior_probabilities
+    # Calculate prior probabilities with smoothing
+    prior_probabilities = (activity_counts + alpha) / total_count
 
-
-# def calculate_transition_probabilities(series, observation_to_state):
-#     # Convert observations to corresponding states using observation_to_state dict
-#     series_states = np.array([observation_to_state[obs] for obs in series])
-#     num_states = len(np.unique(series_states))
-#     transitions = np.zeros((num_states, num_states))
-
-#     # Count transitions
-#     for i in range(len(series_states) - 1):
-#         current_state = series_states[i]
-#         next_state = series_states[i + 1]
-#         transitions[current_state, next_state] += 1
-
-#     # Normalize to get probabilities
-#     row_sums = transitions.sum(axis=1)
-#     transition_probabilities = transitions / row_sums[:, np.newaxis]
-
-#     return transition_probabilities
+    return prior_probabilities.reindex(unique_activities, fill_value=0)
 
 
-# def calculate_emission_probabilities(series, states):
-#     states = np.arange(np.unique(states))
-#     num_states = len(np.unique(states))
-#     num_observation_values = len(np.unique(series))
-#     emission_probabilities = np.zeros((num_states, num_observation_values))
+def calculate_transition_probabilities(activity_series):
+    # Get unique activities
+    unique_activities = activity_series.unique()
+    n_activities = len(unique_activities)
 
-#     # Count occurrences of each observation for each state
-#     for i, state in enumerate(states):
-#         observation = series[i]
-#         emission_probabilities[state, observation] += 1
+    # Create a mapping from activity to index
+    activity_to_index = {activity: index for index, activity in enumerate(unique_activities)}
 
-#     # Normalize to get probabilities
-#     row_sums = emission_probabilities.sum(axis=1)
-#     emission_probabilities /= row_sums[:, np.newaxis]
+    # Initialize transition matrix with Laplace smoothing
+    alpha = 1
+    transition_matrix = np.ones((n_activities, n_activities)) * alpha
 
-#     return emission_probabilities
+    # Populate the transition matrix
+    for prev_activity, next_activity in zip(activity_series[:-1], activity_series[1:]):
+        i = activity_to_index[prev_activity]
+        j = activity_to_index[next_activity]
+        transition_matrix[i, j] += 1
+
+    # Normalize the transition matrix to get probabilities
+    row_sums = transition_matrix.sum(axis=1)
+    transition_probabilities = transition_matrix / row_sums[:, None]
+
+    return pd.DataFrame(transition_probabilities, index=unique_activities, columns=unique_activities)
 
 
-# def initialize_hmm_probabilities(observed_sequence):
-#     # Convert observed_sequence to numpy array
-#     observed_sequence = np.array(observed_sequence)
+def calculate_emission_probabilities(series, states):
+    states = np.arange(np.unique(states))
+    num_states = len(np.unique(states))
+    num_observation_values = len(np.unique(series))
+    emission_probabilities = np.zeros((num_states, num_observation_values))
 
-#     # Unique observations
-#     unique_observations = ACTIVITIES_LIST
-#     num_states = len(unique_observations)
-#     num_observations = num_states
+    # Count occurrences of each observation for each state
+    for i, state in enumerate(states):
+        observation = series[i]
+        emission_probabilities[state, observation] += 1
 
-#     # Create a mapping from observation to state
-#     state_to_observation = {idx: obs for idx, obs in enumerate(unique_observations)}
-#     observation_to_state = {obs: idx for idx, obs in enumerate(unique_observations)}
+    # Normalize to get probabilities
+    row_sums = emission_probabilities.sum(axis=1)
+    emission_probabilities /= row_sums[:, np.newaxis]
 
-#     # Initial Probabilities (pi)
-#     prior_probabilities = calculate_prior_probabilities(observed_sequence, observation_to_state)
+    return emission_probabilities
 
-#     # Transition Probabilities (A)
-#     transition_probabilities = calculate_transition_probabilities(observed_sequence, observation_to_state)
 
-#     # Emission Probabilities (B)
-#     emission_probabilities = np.random.dirichlet(np.ones(num_observations), size=num_states)
+def initialize_hmm_probabilities(observed_sequence):
+    # Convert observed_sequence to numpy array
+    # observed_sequence = np.array(observed_sequence)
 
-#     return (
-#         prior_probabilities,
-#         transition_probabilities,
-#         emission_probabilities,
-#         state_to_observation,
-#     )
+    # Unique observations
+    unique_observations = ACTIVITIES_LIST
+    num_states = len(unique_observations)
+    num_observations = num_states
+
+    # Create a mapping from observation to state
+    state_to_observation = {idx: obs for idx, obs in enumerate(unique_observations)}
+    observation_to_state = {obs: idx for idx, obs in enumerate(unique_observations)}
+
+    # Initial Probabilities (pi)
+    prior_probabilities = calculate_prior_probabilities(observed_sequence)
+
+    # Transition Probabilities (A)
+    transition_probabilities = calculate_transition_probabilities(observed_sequence)
+
+    # Emission Probabilities (B)
+    emission_probabilities = np.random.dirichlet(np.ones(num_observations), size=num_states)
+
+    return (
+        prior_probabilities,
+        transition_probabilities,
+        emission_probabilities,
+        state_to_observation,
+    )
 
 
 def get_hmm_state_mapping(states, labels):
@@ -121,18 +128,23 @@ def get_activity_from_hidden_states(states, mapping):
 
 
 def hmm_get_activity_classification(model, X_train, X_test, y_train, y_test):
-    # (
-    #     prior_probabilities,
-    #     transition_probabilities,
-    #     emission_probabilities,
-    #     state_to_observation,
-    # ) = initialize_hmm_probabilities(y_train)
+    (
+        prior_probabilities,
+        transition_probabilities,
+        emission_probabilities,
+        state_to_observation,
+    ) = initialize_hmm_probabilities(y_train)
 
-    # print(state_to_observation)
-    # model.startprob_ = prior_probabilities
-    # model.transmat_ = transition_probabilities
+    print(
+        prior_probabilities,
+        transition_probabilities,
+        emission_probabilities,
+        state_to_observation,
+    )
+    model.startprob_ = prior_probabilities
+    model.transmat_ = transition_probabilities
     # model.emissionprob_ = emission_probabilities
-    # lengths_train = y_train.value_counts().to_list()
+    lengths_train = y_train.value_counts().to_list()
 
     model.fit(X_train.to_numpy())
     states = model.predict(X_train.to_numpy())
@@ -141,7 +153,7 @@ def hmm_get_activity_classification(model, X_train, X_test, y_train, y_test):
     # Function to predict activities given new sensor event sequences
     def predict_activities(model, test_data):
         states = model.predict(test_data.to_numpy())
-        predicted_activities = get_activity_from_hidden_states(pd.Series(states), mapping)
+        predicted_activities = get_activity_from_hidden_states(pd.Series(states), state_to_observation)
         return predicted_activities
 
     # Predict activities for X_test
