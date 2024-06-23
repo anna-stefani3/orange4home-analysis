@@ -39,6 +39,16 @@ DT_PARAMS = {
     "random_state": 42,         # Random state for reproducibility
 }
 
+
+RANDOM_FOREST_PARAMS = {
+    "n_estimators": 100,
+    "criterion": "entropy",
+    "max_depth": 6,
+    "n_jobs": -1,
+    "random_state": 42,
+}
+
+
 HMM = hmm.GaussianHMM(
     n_components=len(ACTIVITIES_LIST) * 10,
     covariance_type="tied",
@@ -145,6 +155,14 @@ def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, 
 
 
 @validate_experiment
+def apply_random_forest_to_classify_activity_directly(X_train, X_test, y_train, y_test):
+    print("\n\nRandom Forest - Classify Each Activity Separately")
+    # Initialize the Random Forest with Gini
+    RandomForest = RandomForestClassifier(**RANDOM_FOREST_PARAMS)
+    classify_activity_directly(RandomForest, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
 def apply_svm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
     print("\n\nSVM - Classify Each Activity Separately")
     # Initialize the SVM classifier with the Gaussian Kernel
@@ -239,15 +257,23 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
 
 @validate_experiment
 def apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
-    print("\n\nDECISION TREE - Classify Each Activity Separately")
+    print("\n\nDECISION TREE - Classify Location then Activity")
     # Initialize Decision Tree Classifier
     DT = DecisionTreeClassifier(**DT_PARAMS)
     classify_location_then_activity(DT, X_train, X_test, y_train, y_test)
 
 
 @validate_experiment
+def apply_random_forest_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
+    print("\n\nRandom Forest - Classify Location then Activity")
+    # Initialize the Random Forest with Gini
+    RandomForest = RandomForestClassifier(**RANDOM_FOREST_PARAMS)
+    classify_location_then_activity(RandomForest, X_train, X_test, y_train, y_test)
+
+
+@validate_experiment
 def apply_svm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
-    print("\n\nSVM - Classify Each Activity Separately")
+    print("\n\nSVM - Classify Location then Activity")
     # Initialize the SVM classifier with the Gaussian Kernel
     SVM = svm.SVC(**SVM_PARAMS)
     classify_location_then_activity(SVM, X_train, X_test, y_train, y_test)
@@ -255,7 +281,7 @@ def apply_svm_to_classify_location_then_activity(X_train, X_test, y_train, y_tes
 
 @validate_experiment
 def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
-    print("\n\nCRF - Classify Each Activity Separately")
+    print("\n\nCRF - Classify Location then Activity")
     # Initialize CRF Classifier
     CRF_CLASSIFIER = CRF(**CRF_PARAMS)
     classify_location_then_activity(CRF_CLASSIFIER, X_train, X_test, y_train, y_test)
@@ -263,7 +289,7 @@ def apply_crf_to_classify_location_then_activity(X_train, X_test, y_train, y_tes
 
 @validate_experiment
 def apply_hmm_to_classify_location_then_activity(X_train, X_test, y_train, y_test):
-    print("\n\nHMM - Classify Each Activity Separately")
+    print("\n\nHMM - Classify Location then Activity")
     classify_location_then_activity(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
