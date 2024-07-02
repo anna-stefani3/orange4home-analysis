@@ -39,3 +39,8 @@ apply_hmm_to_classify_location_then_activity(X_train, X_valid, y_train, y_valid)
 
 
 apply_rule_based_system_to_classify_location_then_activity(X_valid, y_valid)
+
+
+apply_decision_tree_to_classify_location_then_activity(X_train, X_test, y_train, y_test)
+apply_rule_based_system_to_classify_location_then_activity(X_test, y_test)
+apply_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test)

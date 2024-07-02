@@ -50,7 +50,7 @@ RANDOM_FOREST_PARAMS = {
 
 
 HMM = hmm.GaussianHMM(
-    n_components=len(ACTIVITIES_LIST) * 7,
+    n_components=len(ACTIVITIES_LIST) * 10,
     covariance_type="tied",
     n_iter=100,
     random_state=11,
