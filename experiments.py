@@ -2,8 +2,8 @@ from sklearn.feature_selection import RFECV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
-from common_variables import ACTIVITIES_LIST, ACTIVITY_LOCATION_MAPPING, LOCATIONS_LIST, LOCATION_INT_MAPPING
-from utils import model_train_test_score, print_metrices, calculate_metrics, validate_experiment
+from common_variables import ACTIVITIES_LIST, ACTIVITY_LOCATION_MAPPING, LOCATIONS_LIST
+from utils import model_train_test_score, print_metrices, calculate_metrics, validate_experiment, one_hot_encode
 from rules import get_location, get_activity_label
 from preprocessing import get_balanced_training_dataset
 
@@ -229,11 +229,14 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
 
     # Create a copy of the testing data for activity prediction and add location_int column
     X_test_activity = X_test.copy()
-    X_test_activity["location_int"] = [LOCATION_INT_MAPPING[key] for key in location]
+    X_test_location_df = one_hot_encode(location)
+    X_test_activity = X_test_activity.join(X_test_location_df)
+    print(X_test_activity.columns)
 
     # Create a copy of the training data for activity prediction and add location_int column
     X_train_activity = X_train.copy()
-    X_train_activity["location_int"] = y_train["location_int"]
+    X_train_location_df = one_hot_encode(location)
+    X_train_activity = X_train_activity.join(X_train_location_df)
 
     # Get top features based on importance for activity prediction
     top_features = get_top_features_using_RFECV(X_train_activity, y_train["activity"])

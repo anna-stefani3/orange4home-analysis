@@ -427,3 +427,20 @@ def validate_experiment(func):
             func(*args, **kwargs)
 
     return wrapper
+
+
+def one_hot_encode(labels, prefix="is"):
+    """
+    Takes a pandas Series as input and returns a one-hot encoded DataFrame with a specified prefix.
+    
+    Parameters:
+    labels (pd.Series or numpy array): The input labels to be one-hot encoded.
+    prefix (str): The prefix to add to the column names.
+    
+    Returns:
+    pd.DataFrame: One-hot encoded DataFrame.
+    """
+    # One-hot encode the Series with the specified prefix
+    one_hot_df = pd.get_dummies(labels, prefix=prefix)
+    
+    return one_hot_df
