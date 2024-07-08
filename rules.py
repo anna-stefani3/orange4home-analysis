@@ -34,7 +34,7 @@ def get_location(row):
     if len(indexes) == 1:
         return indexes[0].split("_")[0]
     else:
-        return np.NaN
+        return "unknown"
 
 
 def get_max(values):

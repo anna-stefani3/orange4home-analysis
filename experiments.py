@@ -231,7 +231,6 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
     X_test_activity = X_test.copy()
     X_test_location_df = one_hot_encode(location)
     X_test_activity = X_test_activity.join(X_test_location_df)
-    print(X_test_activity.columns)
 
     # Create a copy of the training data for activity prediction and add location_int column
     X_train_activity = X_train.copy()
