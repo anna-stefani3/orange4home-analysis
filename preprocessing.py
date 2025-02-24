@@ -130,7 +130,7 @@ def add_time_based_features(dataset):
     return dataset
 
 
-def get_temporal_sequence_data(dataset):
+def get_lagged_sequence_data(dataset):
     """
     Creating Temporal sequence with past data
     """
@@ -232,11 +232,11 @@ def apply_preprocessing(filename=BASE_PATH):
         validation = add_time_based_features(validation)
         testing = add_time_based_features(testing)
 
-    response = input("Press 1 to Add Temporal Sequence\n")
+    response = input("Press 1 to Add Lagged Features\n")
     if response == "1":
-        training = get_temporal_sequence_data(training)
-        validation = get_temporal_sequence_data(validation)
-        testing = get_temporal_sequence_data(testing)
+        training = get_lagged_sequence_data(training)
+        validation = get_lagged_sequence_data(validation)
+        testing = get_lagged_sequence_data(testing)
 
     # Extract features and labels from the training, validation and testing DataFrame
     X_train, y_train = get_feature_and_label(training)
