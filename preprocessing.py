@@ -45,6 +45,7 @@ def get_balanced_training_dataset(X_train, y_train):
     # Apply oversampling and extract features and labels
     X_balanced_train, y_balanced_train = get_feature_and_label(resampled_df)
     X_balanced_train_df, y_balanced_train_df = get_balanced_data(X_balanced_train, y_balanced_train)
+    X_balanced_train_df.drop(["minute", "hour", "day_of_week", "time_of_day"], axis=1, inplace=True)
 
     # Display the shape of the balanced dataset after oversampling
     print(

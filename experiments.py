@@ -148,7 +148,10 @@ def classify_activity_directly(model, X_train, X_test, y_train, y_test, mode="st
 
 @validate_experiment
 def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, y_test):
-    print("\n\nDECISION TREE - Classify Each Activity Separately")
+    if X_train.shape[0] > 20000:
+        print("\n\nDECISION TREE [BALANCED DATA] - Classify Each Activity Separately")
+    else:
+        print("\n\nDECISION TREE - Classify Each Activity Separately")
     # Initialize Decision Tree Classifier
     DT = DecisionTreeClassifier(**DT_PARAMS)
     classify_activity_directly(DT, X_train, X_test, y_train, y_test)
@@ -156,7 +159,10 @@ def apply_decision_tree_to_classify_activity_directly(X_train, X_test, y_train, 
 
 @validate_experiment
 def apply_random_forest_to_classify_activity_directly(X_train, X_test, y_train, y_test):
-    print("\n\nRandom Forest - Classify Each Activity Separately")
+    if X_train.shape[0] > 20000:
+        print("\n\nRandom Forest [BALANCED DATA] - Classify Each Activity Separately")
+    else:
+        print("\n\nRandom Forest - Classify Each Activity Separately")
     # Initialize the Random Forest with Gini
     RandomForest = RandomForestClassifier(**RANDOM_FOREST_PARAMS)
     classify_activity_directly(RandomForest, X_train, X_test, y_train, y_test)
@@ -164,7 +170,10 @@ def apply_random_forest_to_classify_activity_directly(X_train, X_test, y_train, 
 
 @validate_experiment
 def apply_svm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
-    print("\n\nSVM - Classify Each Activity Separately")
+    if X_train.shape[0] > 20000:
+        print("\n\nSVM [BALANCED DATA] - Classify Each Activity Separately")
+    else:
+        print("\n\nSVM - Classify Each Activity Separately")
     # Initialize the SVM classifier with the Gaussian Kernel
     SVM = svm.SVC(**SVM_PARAMS)
     classify_activity_directly(SVM, X_train, X_test, y_train, y_test)
@@ -180,7 +189,10 @@ def apply_crf_to_classify_activity_directly(X_train, X_test, y_train, y_test):
 
 @validate_experiment
 def apply_hmm_to_classify_activity_directly(X_train, X_test, y_train, y_test):
-    print("\n\nHMM - Classify Activity Directly")
+    if X_train.shape[0] > 20000:
+        print("\n\nHMM [BALANCED DATA] - Classify Each Activity Separately")
+    else:
+        print("\n\nHMM - Classify Activity Directly")
     classify_activity_directly(HMM, X_train, X_test, y_train, y_test, mode="probabilistic")
 
 
@@ -236,6 +248,7 @@ def classify_location_then_activity(model, X_train, X_test, y_train, y_test, mod
     X_train_activity = X_train.copy()
     X_train_location_df = one_hot_encode(location)
     X_train_activity = X_train_activity.join(X_train_location_df)
+    X_train_activity = X_train_activity.dropna(axis=1)
 
     # Get top features based on importance for activity prediction
     top_features = get_top_features_using_RFECV(X_train_activity, y_train["activity"])
